@@ -3,8 +3,8 @@ import math
 import time
 
 gi.require_version("Gtk", "3.0")
-gi.require_version("GooCanvas", "3.0")
-from gi.repository import Gtk, GooCanvas, GObject, Gdk
+gi.require_version("GooCanvas", "2.0")
+from gi.repository import Gtk, GooCanvas, GLib, Gdk
 
 
 class AnalogClock(Gtk.Window):
@@ -32,7 +32,7 @@ class AnalogClock(Gtk.Window):
         self.second_hand_shadow, self.second_hand = None, None
 
         # Actualizar cada segundo
-        GObject.timeout_add(1000, self.update_clock)
+        GLib.timeout_add(1000, self.update_clock)
 
     def on_configure_event(self, widget, event):
         """Redibuja el fondo del reloj cuando se cambia el tamaño de la ventana."""
@@ -63,11 +63,17 @@ class AnalogClock(Gtk.Window):
             x2 = width / 2 + (radius - 40) * math.sin(angle)
             y2 = height / 2 - (radius - 40) * math.cos(angle)
 
-            GooCanvas.CanvasPath(
+            # Crear los puntos para la nueva línea
+            line_points = GooCanvas.CanvasPoints.new(2)
+            line_points.set_point(0, x1, y1)
+            line_points.set_point(1, x2, y2)
+
+            # Crear la línea como una polyline
+            line = GooCanvas.CanvasPolyline(
                 parent=self.root,
-                data=f"M {x1},{y1} L {x2},{y2}",
+                points=line_points,
                 stroke_color="black",
-                line_width=3,
+                line_width=3
             )
 
         # Inicializar las agujas con sombras
@@ -82,23 +88,47 @@ class AnalogClock(Gtk.Window):
         )
 
     def clear_canvas(self):
-        """Clear the canvas and redraw the background."""
-        self.canvas.remove_all()
+        root_item = self.canvas.get_root_item()
+        
+        # Obtener el número de hijos
+        n_children = root_item.get_n_children()
+
+        # Eliminar los hijos en orden inverso (para evitar problemas al eliminar)
+        for i in range(n_children - 1, -1, -1):
+            child = root_item.get_child(i)
+            root_item.remove_child(i)
+
+
+
 
     def add_hand_with_shadow(self, x1, y1, x2, y2, width, color):
         """Agrega una aguja y su sombra correspondiente."""
-        shadow = GooCanvas.CanvasPath(
+        # Crear los puntos para la sombra
+        shadow_points = GooCanvas.CanvasPoints.new(2)
+        shadow_points.set_point(0, x1 + 3, y1 + 3)
+        shadow_points.set_point(1, x2 + 3, y2 + 3)
+
+        # Crear la sombra como una polyline
+        shadow = GooCanvas.CanvasPolyline(
             parent=self.root,
-            data=f"M {x1 + 3},{y1 + 3} L {x2 + 3},{y2 + 3}",
+            points=shadow_points,
             stroke_color="gray",
-            line_width=width,
+            line_width=width
         )
-        hand = GooCanvas.CanvasPath(
+
+        # Crear los puntos para la mano
+        hand_points = GooCanvas.CanvasPoints.new(2)
+        hand_points.set_point(0, x1, y1)
+        hand_points.set_point(1, x2, y2)
+
+        # Crear la mano como una polyline
+        hand = GooCanvas.CanvasPolyline(
             parent=self.root,
-            data=f"M {x1},{y1} L {x2},{y2}",
+            points=hand_points,
             stroke_color=color,
-            line_width=width,
+            line_width=width
         )
+
         return shadow, hand
 
     def update_clock(self):
@@ -135,8 +165,18 @@ class AnalogClock(Gtk.Window):
         x2 = x1 + length * math.sin(angle)
         y2 = y1 - length * math.cos(angle)
 
-        shadow.set_property("data", f"M {x1 + 3},{y1 + 3} L {x2 + 3},{y2 + 3}")
-        hand.set_property("data", f"M {x1},{y1} L {x2},{y2}")
+        # Actualizar la sombra
+        shadow_points = GooCanvas.CanvasPoints.new(2)
+        shadow_points.set_point(0, x1 + 3, y1 + 3)
+        shadow_points.set_point(1, x2 + 3, y2 + 3)
+        shadow.set_property("points", shadow_points)
+
+        # Actualizar la aguja
+        hand_points = GooCanvas.CanvasPoints.new(2)
+        hand_points.set_point(0, x1, y1)
+        hand_points.set_point(1, x2, y2)
+        hand.set_property("points", hand_points)
+
 
 
 if __name__ == "__main__":
