@@ -31,24 +31,30 @@ class MovingClock(Gtk.Window):
 
         self.hour1 = self.create_digit_group(0, 0, self.pixel_size, self.digit1)
         self.custom_shape = self.create_custom_shape(0, 0, self.pixel_size, self.digit1)
-        self.set_number(self.custom_shape, 0)
+        self.set_number(self.custom_shape, 3)
 
         self.hour2 = self.create_digit_group(80, 0, self.pixel_size, self.digit2)
         self.custom_shape = self.create_custom_shape(80, 0, self.pixel_size, self.digit2)
-        self.set_number(self.custom_shape, 7)
+        self.set_number(self.custom_shape, 3)
         
         self.separator1 = self.create_separator(160, 20, self.pixel_size, self.clock)
         self.separator2 = self.create_separator(160, 60, self.pixel_size, self.clock)
         
         self.minute1 = self.create_digit_group(200, 0, self.pixel_size, self.digit3)
         self.custom_shape = self.create_custom_shape(200, 0, self.pixel_size, self.digit3)
-        self.set_number(self.custom_shape, 1)
+        self.set_number(self.custom_shape, 3)
         
         self.minute2 = self.create_digit_group(280, 0, self.pixel_size, self.digit4)
         self.custom_shape = self.create_custom_shape(280, 0, self.pixel_size, self.digit4)
         self.set_number(self.custom_shape, 3)
 
-        # self.clock.set_transform()
+        window_width, window_height = self.get_size()
+        clock_bounds = self.clock.get_bounds()
+        matrix = cairo.Matrix()
+        matrix.x0 = window_width/2 - (clock_bounds.x2-clock_bounds.x1)/2
+        matrix.y0 = window_height/2
+        # self.clock.set_simple_transform(window_width/2 - (clock_bounds.x2-clock_bounds.x1)/2, window_height/2, 1, 0)
+        self.clock.set_transform(matrix)
         
     def create_digit_group(self, x, y, pixel_size, parent_group):
         """Crea un grupo de paneles en forma de dígito"""

@@ -3,7 +3,7 @@ import math
 import time
 
 gi.require_version("Gtk", "3.0")
-gi.require_version("GooCanvas", "3.0")  # GooCanvas 3.0
+gi.require_version("GooCanvas", "3.0")
 from gi.repository import Gtk, GooCanvas, GObject
 
 class AnalogClock(Gtk.Window):

@@ -1,0 +1,13 @@
+prefix=/Users/santi/Documents/UCC/2024/Compu_grafica/Computacion-Grafica/Clock/myenv
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+
+Name: GooCanvas
+Description: A GTK+ canvas widget using cairo
+Version: 2.0.4
+Requires: gtk+-3.0 cairo
+Libs: -L${libdir} -lgoocanvas-2.0
+Cflags: -I${includedir}/goocanvas-2.0
+
