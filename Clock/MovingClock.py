@@ -23,7 +23,9 @@ class MovingClock(Gtk.Window):
 
         self.draw_clock()
 
-        GObject.timeout_add(5, self.update_clock)
+        GObject.timeout_add(20, self.update_clock)
+        GObject.timeout_add(10, self.update_second_ten)
+        GObject.timeout_add(1, self.update_second_unit)
 
     def draw_clock(self):
         clock = GooCanvas.CanvasGroup(parent=self.root)
@@ -181,9 +183,16 @@ class MovingClock(Gtk.Window):
         self.set_number(self.covering_grid_2, parsed_now["hour"]["unit"], 1)
         self.set_number(self.covering_grid_3, parsed_now["minute"]["ten"], 1)
         self.set_number(self.covering_grid_4, parsed_now["minute"]["unit"], 1)
-        self.set_number(self.covering_grid_5, parsed_now["second"]["ten"], 1)
-        self.set_number(self.covering_grid_6, parsed_now["second"]["unit"], 1)
+        return True
 
+    def update_second_ten(self):
+        parsed_now = self.parse_time()
+        self.set_number(self.covering_grid_5, parsed_now["second"]["ten"], 1)
+        return True
+
+    def update_second_unit(self):
+        parsed_now = self.parse_time()
+        self.set_number(self.covering_grid_6, parsed_now["second"]["unit"], 1)
         return True
 
 
