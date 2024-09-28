@@ -23,14 +23,6 @@ class MovingClock(Gtk.Window):
 
         self.draw_clock()
 
-        # window_width, window_height = self.get_size()
-        # clock_bounds = self.clock.get_bounds()
-        # matrix = cairo.Matrix()
-        # matrix.x0 = window_width/2 - (clock_bounds.x2-clock_bounds.x1)/2
-        # matrix.y0 = window_height/2
-        # # self.clock.set_simple_transform(window_width/2 - (clock_bounds.x2-clock_bounds.x1)/2, window_height/2, 1, 0)
-        # self.clock.set_transform(matrix)
-
         GObject.timeout_add(5, self.update_clock)
 
     def draw_clock(self):
@@ -40,6 +32,8 @@ class MovingClock(Gtk.Window):
         digit2 = GooCanvas.CanvasGroup(parent=clock)
         digit3 = GooCanvas.CanvasGroup(parent=clock)
         digit4 = GooCanvas.CanvasGroup(parent=clock)
+        digit5 = GooCanvas.CanvasGroup(parent=clock)
+        digit6 = GooCanvas.CanvasGroup(parent=clock)
 
         self.create_digit_group(0, 0, self.pixel_size, digit1)
         self.covering_grid_1 = self.create_custom_shape(0, 0, self.pixel_size, digit1)
@@ -55,6 +49,24 @@ class MovingClock(Gtk.Window):
         
         self.create_digit_group(280, 0, self.pixel_size, digit4)
         self.covering_grid_4 = self.create_custom_shape(280, 0, self.pixel_size, digit4)
+        
+        self.create_separator(360, 20, self.pixel_size, clock)
+        self.create_separator(360, 60, self.pixel_size, clock)
+        
+        self.create_digit_group(400, 0, self.pixel_size, digit5)
+        self.covering_grid_5 = self.create_custom_shape(400, 0, self.pixel_size, digit5)
+        
+        self.create_digit_group(480, 0, self.pixel_size, digit6)
+        self.covering_grid_6 = self.create_custom_shape(480, 0, self.pixel_size, digit6)
+
+        window_width, window_height = self.get_size()
+        clock_bounds = clock.get_bounds()
+        matrix = cairo.Matrix()
+        matrix.x0 = window_width/2 - (clock_bounds.x2-clock_bounds.x1)/2
+        matrix.y0 = window_height/2
+        clock.set_transform(matrix)
+
+        self.update_clock()
 
     def create_digit_group(self, x, y, pixel_size, parent_group):
         """Crea un grupo de paneles en forma de dígito"""
@@ -152,7 +164,7 @@ class MovingClock(Gtk.Window):
         return {"hour": {"ten": hour//10, "unit": hour%10},"minute": {"ten": minute//10, "unit": minute%10},"second": {"ten": second//10, "unit": second%10}}
 
     def transition(self, group, final_pos, step):
-        final_pos *= self.pixel_size
+        final_pos = (self.pixel_size * final_pos) + 300
         current_pos = int(group.get_bounds().y1)
 
         if current_pos == final_pos:
@@ -167,8 +179,10 @@ class MovingClock(Gtk.Window):
         parsed_now = self.parse_time()
         self.set_number(self.covering_grid_1, parsed_now["hour"]["ten"], 1)
         self.set_number(self.covering_grid_2, parsed_now["hour"]["unit"], 1)
-        self.set_number(self.covering_grid_3, parsed_now["second"]["ten"], 1)
-        self.set_number(self.covering_grid_4, parsed_now["second"]["unit"], 1)
+        self.set_number(self.covering_grid_3, parsed_now["minute"]["ten"], 1)
+        self.set_number(self.covering_grid_4, parsed_now["minute"]["unit"], 1)
+        self.set_number(self.covering_grid_5, parsed_now["second"]["ten"], 1)
+        self.set_number(self.covering_grid_6, parsed_now["second"]["unit"], 1)
 
         return True
 
