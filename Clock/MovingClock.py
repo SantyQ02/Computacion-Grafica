@@ -1,8 +1,6 @@
 import gi
 import cairo
 from datetime import datetime
-from time import sleep
-
 gi.require_version('Gtk', '3.0')
 gi.require_version('GooCanvas', '2.0')
 from gi.repository import Gtk, GooCanvas, GObject
@@ -11,7 +9,7 @@ from gi.repository import Gtk, GooCanvas, GObject
 class MovingClock(Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self, title="Moving self.clock")
-        self.set_default_size(600, 600)
+        self.set_default_size(1000, 600)
         self.pixel_size = 20
         
         self.canvas = GooCanvas.Canvas()
@@ -23,14 +21,13 @@ class MovingClock(Gtk.Window):
         self.draw_clock()
         self.connect("configure-event", self.on_configure_event)
 
-        GObject.timeout_add(20, self.update_clock)
+        GObject.timeout_add(20, self.update_hour_and_minute)
         GObject.timeout_add(10, self.update_second_ten)
         GObject.timeout_add(1, self.update_second_unit)
 
     def on_configure_event(self, obj, tgt):
         self.canvas.set_size_request(*self.get_size())
         self.center_clock()
-
 
     def draw_clock(self):
         self.clock = GooCanvas.CanvasGroup(parent=self.root)
@@ -67,7 +64,7 @@ class MovingClock(Gtk.Window):
 
         self.center_clock()
 
-        self.update_clock()
+        self.update_hour_and_minute()
 
     def center_clock(self):
         # Center X
@@ -87,7 +84,6 @@ class MovingClock(Gtk.Window):
             separator.set_transform(matrix_y)
 
     def create_digit_group(self, x, y, pixel_size, parent_group):
-        """Crea un grupo de paneles en forma de dígito"""
         group = GooCanvas.CanvasGroup(parent=parent_group)
         for col in range(3):
             for row in range(5):
@@ -96,13 +92,11 @@ class MovingClock(Gtk.Window):
         return group
 
     def create_separator(self, x, y, pixel_size, parent_group):
-        """Crea los dos puntos separadores en el reloj"""
         group = GooCanvas.CanvasGroup(parent=parent_group)
         GooCanvas.CanvasRect(x=x , y=y, width=pixel_size, height=pixel_size, stroke_color="black", fill_color="orange", parent=group)
         return group
     
     def create_custom_shape(self, start_x, start_y, pixel_size, parent_group):
-        """Crea un grupo con la forma de la imagen proporcionada"""
         black_cells = [
             (1, 1), 
             (1, 2), 
@@ -182,7 +176,6 @@ class MovingClock(Gtk.Window):
         return {"hour": {"ten": hour//10, "unit": hour%10},"minute": {"ten": minute//10, "unit": minute%10},"second": {"ten": second//10, "unit": second%10}}
 
     def transition(self, group, final_pos, step):
-        # TODO: Add background offset
         final_pos = self.pixel_size * final_pos + self.offset - 1
         current_pos = int(group.get_bounds().y1)
 
@@ -194,7 +187,7 @@ class MovingClock(Gtk.Window):
         else:
             group.translate(0,step)
 
-    def update_clock(self):
+    def update_hour_and_minute(self):
         parsed_now = self.parse_time()
         self.set_number(self.covering_grid_1, parsed_now["hour"]["ten"], 1)
         self.set_number(self.covering_grid_2, parsed_now["hour"]["unit"], 1)
