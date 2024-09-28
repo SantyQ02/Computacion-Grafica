@@ -31,7 +31,7 @@ class MovingClock(Gtk.Window):
         # # self.clock.set_simple_transform(window_width/2 - (clock_bounds.x2-clock_bounds.x1)/2, window_height/2, 1, 0)
         # self.clock.set_transform(matrix)
 
-        GObject.timeout_add(1000, self.update_clock)
+        GObject.timeout_add(5, self.update_clock)
 
     def draw_clock(self):
         clock = GooCanvas.CanvasGroup(parent=self.root)
@@ -153,18 +153,15 @@ class MovingClock(Gtk.Window):
 
     def transition(self, group, final_pos, step):
         final_pos *= self.pixel_size
-        matrix = cairo.Matrix()
         current_pos = int(group.get_bounds().y1)
 
         if current_pos == final_pos:
             return
-
-        iterrange = range(current_pos, final_pos - step, -step) if current_pos > final_pos else range(current_pos, final_pos + step, step)
-
-        for i in iterrange:
-            matrix.y0 = i
-            group.set_transform(matrix)
-            # sleep(0.1)
+        
+        if current_pos > final_pos:
+            group.translate(0,-step)
+        else:
+            group.translate(0,step)
 
     def update_clock(self):
         parsed_now = self.parse_time()
