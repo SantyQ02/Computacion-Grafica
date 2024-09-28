@@ -1,12 +1,11 @@
 import gi
-import time
-import math
 import cairo
 from datetime import datetime
+from time import sleep
 
 gi.require_version('Gtk', '3.0')
 gi.require_version('GooCanvas', '2.0')
-from gi.repository import Gtk, GooCanvas, Gdk, GLib
+from gi.repository import Gtk, GooCanvas, GObject
 
 # Clase principal del Reloj
 class MovingClock(Gtk.Window):
@@ -22,40 +21,41 @@ class MovingClock(Gtk.Window):
 
         self.root = self.canvas.get_root_item()
 
-        self.clock = GooCanvas.CanvasGroup(parent=self.root)
-        
-        self.digit1 = GooCanvas.CanvasGroup(parent=self.clock)
-        self.digit2 = GooCanvas.CanvasGroup(parent=self.clock)
-        self.digit3 = GooCanvas.CanvasGroup(parent=self.clock)
-        self.digit4 = GooCanvas.CanvasGroup(parent=self.clock)
+        self.draw_clock()
 
-        self.hour1 = self.create_digit_group(0, 0, self.pixel_size, self.digit1)
-        self.custom_shape = self.create_custom_shape(0, 0, self.pixel_size, self.digit1)
-        self.set_number(self.custom_shape, 3)
+        # window_width, window_height = self.get_size()
+        # clock_bounds = self.clock.get_bounds()
+        # matrix = cairo.Matrix()
+        # matrix.x0 = window_width/2 - (clock_bounds.x2-clock_bounds.x1)/2
+        # matrix.y0 = window_height/2
+        # # self.clock.set_simple_transform(window_width/2 - (clock_bounds.x2-clock_bounds.x1)/2, window_height/2, 1, 0)
+        # self.clock.set_transform(matrix)
 
-        self.hour2 = self.create_digit_group(80, 0, self.pixel_size, self.digit2)
-        self.custom_shape = self.create_custom_shape(80, 0, self.pixel_size, self.digit2)
-        self.set_number(self.custom_shape, 3)
-        
-        self.separator1 = self.create_separator(160, 20, self.pixel_size, self.clock)
-        self.separator2 = self.create_separator(160, 60, self.pixel_size, self.clock)
-        
-        self.minute1 = self.create_digit_group(200, 0, self.pixel_size, self.digit3)
-        self.custom_shape = self.create_custom_shape(200, 0, self.pixel_size, self.digit3)
-        self.set_number(self.custom_shape, 3)
-        
-        self.minute2 = self.create_digit_group(280, 0, self.pixel_size, self.digit4)
-        self.custom_shape = self.create_custom_shape(280, 0, self.pixel_size, self.digit4)
-        self.set_number(self.custom_shape, 3)
+        GObject.timeout_add(1000, self.update_clock)
 
-        window_width, window_height = self.get_size()
-        clock_bounds = self.clock.get_bounds()
-        matrix = cairo.Matrix()
-        matrix.x0 = window_width/2 - (clock_bounds.x2-clock_bounds.x1)/2
-        matrix.y0 = window_height/2
-        # self.clock.set_simple_transform(window_width/2 - (clock_bounds.x2-clock_bounds.x1)/2, window_height/2, 1, 0)
-        self.clock.set_transform(matrix)
+    def draw_clock(self):
+        clock = GooCanvas.CanvasGroup(parent=self.root)
         
+        digit1 = GooCanvas.CanvasGroup(parent=clock)
+        digit2 = GooCanvas.CanvasGroup(parent=clock)
+        digit3 = GooCanvas.CanvasGroup(parent=clock)
+        digit4 = GooCanvas.CanvasGroup(parent=clock)
+
+        self.create_digit_group(0, 0, self.pixel_size, digit1)
+        self.covering_grid_1 = self.create_custom_shape(0, 0, self.pixel_size, digit1)
+
+        self.create_digit_group(80, 0, self.pixel_size, digit2)
+        self.covering_grid_2 = self.create_custom_shape(80, 0, self.pixel_size, digit2)
+        
+        self.create_separator(160, 20, self.pixel_size, clock)
+        self.create_separator(160, 60, self.pixel_size, clock)
+        
+        self.create_digit_group(200, 0, self.pixel_size, digit3)
+        self.covering_grid_3 = self.create_custom_shape(200, 0, self.pixel_size, digit3)
+        
+        self.create_digit_group(280, 0, self.pixel_size, digit4)
+        self.covering_grid_4 = self.create_custom_shape(280, 0, self.pixel_size, digit4)
+
     def create_digit_group(self, x, y, pixel_size, parent_group):
         """Crea un grupo de paneles en forma de dígito"""
         group = GooCanvas.CanvasGroup(parent=parent_group)
@@ -119,50 +119,62 @@ class MovingClock(Gtk.Window):
 
         return group
 
-    def set_number(self, group, number):
+    def set_number(self, group, number, step):
         if number == 0:
-            matrix = cairo.Matrix()
-            matrix.y0 = self.pixel_size * 0
-            group.set_transform(matrix)
+            self.transition(group, 0, step)
         elif number == 1:
-            matrix = cairo.Matrix()
-            matrix.y0 = self.pixel_size * -5
-            group.set_transform(matrix)
+            self.transition(group, -5, step)
         elif number == 2:
-            matrix = cairo.Matrix()
-            matrix.y0 = self.pixel_size * -12
-            group.set_transform(matrix)
+            self.transition(group, -12, step)
         elif number == 3:
-            matrix = cairo.Matrix()
-            matrix.y0 = self.pixel_size * -10
-            group.set_transform(matrix)
+            self.transition(group, -10, step)
         elif number == 4:
-            matrix = cairo.Matrix()
-            matrix.y0 = self.pixel_size * -2
-            group.set_transform(matrix)
+            self.transition(group, -2, step)
         elif number == 5:
-            matrix = cairo.Matrix()
-            matrix.y0 = self.pixel_size * -14
-            group.set_transform(matrix)
+            self.transition(group, -14, step)
         elif number == 6:
-            matrix = cairo.Matrix()
-            matrix.y0 = self.pixel_size * -18
-            group.set_transform(matrix)
+            self.transition(group, -18, step)
         elif number == 7:
-            matrix = cairo.Matrix()
-            matrix.y0 = self.pixel_size * -4
-            group.set_transform(matrix)
+            self.transition(group, -4, step)
         elif number == 8:
-            matrix = cairo.Matrix()
-            matrix.y0 = self.pixel_size * -20
-            group.set_transform(matrix)
+            self.transition(group, -20, step)
         elif number == 9:
-            matrix = cairo.Matrix()
-            matrix.y0 = self.pixel_size * -22
-            group.set_transform(matrix)
+            self.transition(group, -22, step)
         else:
             raise ValueError("No valid number was given")
+    
+    def parse_time(self):
+        now = datetime.now()
+        hour = now.hour
+        minute = now.minute
+        second = now.second
         
+        return {"hour": {"ten": hour//10, "unit": hour%10},"minute": {"ten": minute//10, "unit": minute%10},"second": {"ten": second//10, "unit": second%10}}
+
+    def transition(self, group, final_pos, step):
+        final_pos *= self.pixel_size
+        matrix = cairo.Matrix()
+        current_pos = int(group.get_bounds().y1)
+
+        if current_pos == final_pos:
+            return
+
+        iterrange = range(current_pos, final_pos - step, -step) if current_pos > final_pos else range(current_pos, final_pos + step, step)
+
+        for i in iterrange:
+            matrix.y0 = i
+            group.set_transform(matrix)
+            # sleep(0.1)
+
+    def update_clock(self):
+        parsed_now = self.parse_time()
+        self.set_number(self.covering_grid_1, parsed_now["hour"]["ten"], 1)
+        self.set_number(self.covering_grid_2, parsed_now["hour"]["unit"], 1)
+        self.set_number(self.covering_grid_3, parsed_now["second"]["ten"], 1)
+        self.set_number(self.covering_grid_4, parsed_now["second"]["unit"], 1)
+
+        return True
+
 
 win = MovingClock(20)
 win.connect("destroy", Gtk.main_quit)
