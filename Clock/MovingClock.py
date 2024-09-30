@@ -29,7 +29,6 @@ class MovingClock(Gtk.Window):
 
         self.root = self.canvas.get_root_item()
 
-        # Conectar el evento de teclas
         self.connect("key-press-event", self.on_key_press)
 
         self.draw_clock()
@@ -38,49 +37,50 @@ class MovingClock(Gtk.Window):
         GObject.timeout_add(1, self.update_second)
 
     def on_key_press(self, widget, event):
-        if event.keyval == 99:  
-            # Abrir el diálogo de selección de color
+        if event.keyval == 99:
             color_chooser = Gtk.ColorChooserDialog(title="Select Color", parent=self)
             response = color_chooser.run()
 
             if response == Gtk.ResponseType.OK:
                 color = color_chooser.get_rgba()
-                # Convertir el color a formato hexadecimal
                 pixel_color = f"#{int(color.red * 255):02x}{int(color.green * 255):02x}{int(color.blue * 255):02x}"
-                
-                if pixel_color == '#000000':
+
+                if pixel_color == "#000000":
                     color_chooser.destroy()
                     return
-                # Redibujar el reloj con el nuevo color
-                #self.clock.remove_all_children()
+
                 for digit_bg in self.digit_bgs:
                     for i in range(digit_bg.get_n_children()):
                         child = digit_bg.get_child(i)
-                        if not(child.get_property('fill_color_rgba') == 255):
-                            child.set_property('fill_color', pixel_color)
+                        if not (child.get_property("fill_color_rgba") == 255):
+                            child.set_property("fill_color", pixel_color)
 
                 for separator in self.separators:
                     for i in range(separator.get_n_children()):
                         child = separator.get_child(i)
-                        child.set_property('fill_color', pixel_color)
+                        child.set_property("fill_color", pixel_color)
 
             color_chooser.destroy()
 
     def draw_clock(self):
         black_cells = [
-            (2, 0), 
-            (0, 2), 
+            (2, 0),
+            (0, 2),
             (0, 4),
-            (2, 6), 
-            (0, 12), 
-            (0, 13), (1, 13), 
+            (2, 6),
+            (0, 12),
+            (0, 13),
+            (1, 13),
             (0, 14),
-            (0, 15), (1, 15), 
+            (0, 15),
+            (1, 15),
             (0, 16),
-            (0, 17), (1, 17), 
-            (1, 20), 
+            (0, 17),
+            (1, 17),
+            (1, 20),
             (0, 23),
-            (0, 24), (1, 24),
+            (0, 24),
+            (1, 24),
         ]
 
         self.clock = GooCanvas.CanvasGroup(parent=self.root)
@@ -103,7 +103,7 @@ class MovingClock(Gtk.Window):
             start_y=0,
             pixel_size=self.pixel_size,
             parent_group=digit_groups[0],
-            black_cells=black_cells
+            black_cells=black_cells,
         )
 
         # Digit 2
@@ -120,7 +120,7 @@ class MovingClock(Gtk.Window):
             start_y=0,
             pixel_size=self.pixel_size,
             parent_group=digit_groups[1],
-            black_cells=black_cells
+            black_cells=black_cells,
         )
 
         # Separator Group 1
@@ -147,7 +147,7 @@ class MovingClock(Gtk.Window):
             start_y=0,
             pixel_size=self.pixel_size,
             parent_group=digit_groups[2],
-            black_cells=black_cells
+            black_cells=black_cells,
         )
 
         # Digit 4
@@ -164,7 +164,7 @@ class MovingClock(Gtk.Window):
             start_y=0,
             pixel_size=self.pixel_size,
             parent_group=digit_groups[3],
-            black_cells=black_cells
+            black_cells=black_cells,
         )
 
         # Separator Group 2
@@ -191,7 +191,7 @@ class MovingClock(Gtk.Window):
             start_y=0,
             pixel_size=self.pixel_size,
             parent_group=digit_groups[4],
-            black_cells=black_cells
+            black_cells=black_cells,
         )
 
         # Digit 6
@@ -208,7 +208,7 @@ class MovingClock(Gtk.Window):
             start_y=0,
             pixel_size=self.pixel_size,
             parent_group=digit_groups[5],
-            black_cells=black_cells
+            black_cells=black_cells,
         )
 
         self.center_clock()
@@ -231,7 +231,6 @@ class MovingClock(Gtk.Window):
         for separator in self.separators:
             separator.set_transform(matrix_y)
 
-
     def create_digit_group(self, *, x: int, y: int, pixel_size: int, parent_group):
         group = GooCanvas.CanvasGroup(parent=parent_group)
         for col in range(3):
@@ -242,13 +241,27 @@ class MovingClock(Gtk.Window):
                     width=pixel_size,
                     height=pixel_size,
                     stroke_color="black",
-                    fill_color='orange',
+                    fill_color="orange",
                     parent=group,
                 )
-        GooCanvas.CanvasRect(x=x + 1 * pixel_size, y=y + 1 * pixel_size, width=pixel_size, height=pixel_size,
-                                     stroke_color="black", fill_color="black", parent=group)
-        GooCanvas.CanvasRect(x=x + 1 * pixel_size, y=y + 3 * pixel_size, width=pixel_size, height=pixel_size,
-                                     stroke_color="black", fill_color="black", parent=group)
+        GooCanvas.CanvasRect(
+            x=x + 1 * pixel_size,
+            y=y + 1 * pixel_size,
+            width=pixel_size,
+            height=pixel_size,
+            stroke_color="black",
+            fill_color="black",
+            parent=group,
+        )
+        GooCanvas.CanvasRect(
+            x=x + 1 * pixel_size,
+            y=y + 3 * pixel_size,
+            width=pixel_size,
+            height=pixel_size,
+            stroke_color="black",
+            fill_color="black",
+            parent=group,
+        )
         return group
 
     def create_separator_group(self, *, x: int, y: int, pixel_size: int, parent_group):
@@ -260,7 +273,7 @@ class MovingClock(Gtk.Window):
                 width=pixel_size,
                 height=pixel_size,
                 stroke_color="black",
-                fill_color='orange',
+                fill_color="orange",
                 parent=group,
             )
         return group
