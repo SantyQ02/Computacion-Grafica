@@ -10,31 +10,47 @@ from gi.repository import Gtk, GooCanvas, GObject
 # Clase principal del Reloj
 class MovingClock(Gtk.Window):
     def __init__(self):
-        Gtk.Window.__init__(self, title="Moving self.clock")
-        self.set_default_size(1000, 600)
+        Gtk.Window.__init__(self, title="Moving Clock")
+        self.set_default_size(1000, 1000)
+        self.set_size_request(*self.get_size())
         self.pixel_size = 20
 
         self.canvas = GooCanvas.Canvas()
         self.canvas.set_hexpand(True)
         self.canvas.set_vexpand(True)
 
-        box = Gtk.Box()
-        box.pack_start(self.canvas, True, True, 0)
-        self.add(box)
+        self.box = Gtk.Box()
+        self.box.set_size_request(*self.get_size())
+        self.box.pack_start(self.canvas, True, True, 0)
+        self.add(self.box)
+
+        self.box.set_halign(Gtk.Align.CENTER)
+        self.box.set_valign(Gtk.Align.CENTER)
 
         self.root = self.canvas.get_root_item()
 
         self.draw_clock()
-        self.connect("configure-event", self.on_configure_event)
 
-        GObject.timeout_add(20, self.update_hour_and_minute)
+        GObject.timeout_add(10, self.update_hour_and_minute)
         GObject.timeout_add(1, self.update_second)
 
-    def on_configure_event(self, obj, tgt):
-        self.center_clock()
-        return False
-
     def draw_clock(self):
+        black_cells = [
+            (2, 0), 
+            (0, 2), 
+            (0, 4),
+            (2, 6), 
+            (0, 12), 
+            (0, 13), (1, 13), 
+            (0, 14),
+            (0, 15), (1, 15), 
+            (0, 16),
+            (0, 17), (1, 17), 
+            (1, 20), 
+            (0, 23),
+            (0, 24), (1, 24),
+        ]
+
         self.clock = GooCanvas.CanvasGroup(parent=self.root)
 
         digit_groups = list()
@@ -55,6 +71,7 @@ class MovingClock(Gtk.Window):
             start_y=0,
             pixel_size=self.pixel_size,
             parent_group=digit_groups[0],
+            black_cells=black_cells
         )
 
         # Digit 2
@@ -71,6 +88,7 @@ class MovingClock(Gtk.Window):
             start_y=0,
             pixel_size=self.pixel_size,
             parent_group=digit_groups[1],
+            black_cells=black_cells
         )
 
         # Separator Group 1
@@ -97,6 +115,7 @@ class MovingClock(Gtk.Window):
             start_y=0,
             pixel_size=self.pixel_size,
             parent_group=digit_groups[2],
+            black_cells=black_cells
         )
 
         # Digit 4
@@ -113,6 +132,7 @@ class MovingClock(Gtk.Window):
             start_y=0,
             pixel_size=self.pixel_size,
             parent_group=digit_groups[3],
+            black_cells=black_cells
         )
 
         # Separator Group 2
@@ -139,6 +159,7 @@ class MovingClock(Gtk.Window):
             start_y=0,
             pixel_size=self.pixel_size,
             parent_group=digit_groups[4],
+            black_cells=black_cells
         )
 
         # Digit 6
@@ -155,6 +176,7 @@ class MovingClock(Gtk.Window):
             start_y=0,
             pixel_size=self.pixel_size,
             parent_group=digit_groups[5],
+            black_cells=black_cells
         )
 
         self.center_clock()
@@ -177,6 +199,7 @@ class MovingClock(Gtk.Window):
         for separator in self.separators:
             separator.set_transform(matrix_y)
 
+
     def create_digit_group(self, *, x: int, y: int, pixel_size: int, parent_group):
         group = GooCanvas.CanvasGroup(parent=parent_group)
         for col in range(3):
@@ -190,6 +213,10 @@ class MovingClock(Gtk.Window):
                     fill_color="orange",
                     parent=group,
                 )
+        GooCanvas.CanvasRect(x=x + 1 * pixel_size, y=y + 1 * pixel_size, width=pixel_size, height=pixel_size,
+                                     stroke_color="black", fill_color="black", parent=group)
+        GooCanvas.CanvasRect(x=x + 1 * pixel_size, y=y + 3 * pixel_size, width=pixel_size, height=pixel_size,
+                                     stroke_color="black", fill_color="black", parent=group)
         return group
 
     def create_separator_group(self, *, x: int, y: int, pixel_size: int, parent_group):
@@ -207,40 +234,8 @@ class MovingClock(Gtk.Window):
         return group
 
     def create_custom_shape(
-        self, *, start_x: int, start_y: int, pixel_size: int, parent_group
+        self, *, start_x: int, start_y: int, pixel_size: int, parent_group, black_cells
     ):
-        black_cells = [
-            (1, 1),
-            (1, 2),
-            (1, 3),
-            (0, 5),
-            (1, 5),
-            (0, 6),
-            (1, 6),
-            (0, 7),
-            (1, 7),
-            (0, 8),
-            (1, 8),
-            (0, 9),
-            (1, 9),
-            (0, 11),
-            (1, 11),
-            (0, 13),
-            (1, 13),
-            (1, 15),
-            (2, 15),
-            (0, 17),
-            (1, 17),
-            (1, 19),
-            (2, 19),
-            (1, 21),
-            (1, 23),
-            (0, 25),
-            (1, 25),
-            (0, 26),
-            (1, 26),
-        ]
-
         group = GooCanvas.CanvasGroup(parent=parent_group)
 
         for col in range(3):
@@ -269,25 +264,25 @@ class MovingClock(Gtk.Window):
 
     def set_number(self, *, group, number: int, step: int):
         if number == 0:
-            self.transition(group=group, final_pos=0, step=step)
-        elif number == 1:
-            self.transition(group=group, final_pos=-5, step=step)
-        elif number == 2:
-            self.transition(group=group, final_pos=-12, step=step)
-        elif number == 3:
-            self.transition(group=group, final_pos=-10, step=step)
-        elif number == 4:
-            self.transition(group=group, final_pos=-2, step=step)
-        elif number == 5:
-            self.transition(group=group, final_pos=-14, step=step)
-        elif number == 6:
             self.transition(group=group, final_pos=-18, step=step)
-        elif number == 7:
-            self.transition(group=group, final_pos=-4, step=step)
-        elif number == 8:
+        elif number == 1:
+            self.transition(group=group, final_pos=-13, step=step)
+        elif number == 2:
+            self.transition(group=group, final_pos=-3, step=step)
+        elif number == 3:
+            self.transition(group=group, final_pos=-1, step=step)
+        elif number == 4:
             self.transition(group=group, final_pos=-20, step=step)
+        elif number == 5:
+            self.transition(group=group, final_pos=1, step=step)
+        elif number == 6:
+            self.transition(group=group, final_pos=-5, step=step)
+        elif number == 7:
+            self.transition(group=group, final_pos=-11, step=step)
+        elif number == 8:
+            self.transition(group=group, final_pos=-7, step=step)
         elif number == 9:
-            self.transition(group=group, final_pos=-22, step=step)
+            self.transition(group=group, final_pos=-9, step=step)
         else:
             raise ValueError("No valid number was given")
 
