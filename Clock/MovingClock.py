@@ -15,8 +15,12 @@ class MovingClock(Gtk.Window):
         self.pixel_size = 20
 
         self.canvas = GooCanvas.Canvas()
-        self.canvas.set_size_request(*self.get_size())
-        self.add(self.canvas)
+        self.canvas.set_hexpand(True)
+        self.canvas.set_vexpand(True)
+
+        box = Gtk.Box()
+        box.pack_start(self.canvas, True, True, 0)
+        self.add(box)
 
         self.root = self.canvas.get_root_item()
 
@@ -24,12 +28,11 @@ class MovingClock(Gtk.Window):
         self.connect("configure-event", self.on_configure_event)
 
         GObject.timeout_add(20, self.update_hour_and_minute)
-        GObject.timeout_add(10, self.update_second_ten)
-        GObject.timeout_add(1, self.update_second_unit)
+        GObject.timeout_add(1, self.update_second)
 
     def on_configure_event(self, obj, tgt):
-        self.canvas.set_size_request(*self.get_size())
         self.center_clock()
+        return False
 
     def draw_clock(self):
         self.clock = GooCanvas.CanvasGroup(parent=self.root)
@@ -328,15 +331,11 @@ class MovingClock(Gtk.Window):
         )
         return True
 
-    def update_second_ten(self):
+    def update_second(self):
         parsed_now = self.parse_time()
         self.set_number(
             group=self.covering_grid_5, number=parsed_now["second"]["ten"], step=1
         )
-        return True
-
-    def update_second_unit(self):
-        parsed_now = self.parse_time()
         self.set_number(
             group=self.covering_grid_6, number=parsed_now["second"]["unit"], step=1
         )
