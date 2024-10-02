@@ -3,7 +3,7 @@ import cairo
 from datetime import datetime
 
 gi.require_version("Gtk", "3.0")
-gi.require_version("GooCanvas", "2.0")
+gi.require_version("GooCanvas", "3.0")
 from gi.repository import Gtk, GooCanvas, GObject
 
 
@@ -22,10 +22,23 @@ class MovingClock(Gtk.Window):
         self.box = Gtk.Box()
         self.box.set_size_request(*self.get_size())
         self.box.pack_start(self.canvas, True, True, 0)
-        self.add(self.box)
 
         self.box.set_halign(Gtk.Align.CENTER)
         self.box.set_valign(Gtk.Align.CENTER)
+        
+        overlay = Gtk.Overlay()
+        overlay.add(self.box)
+        label = Gtk.Label()
+        label.set_markup("<span font='20'>Press 'C' to change color</span>")
+        label.set_halign(Gtk.Align.START)
+        label.set_valign(Gtk.Align.END)
+        margin = 10
+        label.set_margin_start(margin)
+        label.set_margin_end(margin)
+        label.set_margin_top(margin)
+        label.set_margin_bottom(margin)
+        overlay.add_overlay(label)
+        self.add(overlay)
 
         self.root = self.canvas.get_root_item()
 
