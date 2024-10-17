@@ -147,24 +147,24 @@ class Cone(ThreeD_object):
                         f"L{self.bx[s]:g},{self.by[s]:g} "
                     )
 
-            case "yz":
-                # Top surface (YZ-plane)
-                svg = f"M{self.ty[0]:g},{self.tz[0]:g} "
+            case "zy":
+                # Top surface (ZY-plane)
+                svg = f"M{self.tz[0]:g},{self.ty[0]:g} "
                 for s in range(1, SUBDIV):
-                    svg += f"L{self.ty[s]:g},{self.tz[s]:g} "
+                    svg += f"L{self.tz[s]:g},{self.ty[s]:g} "
                 svg += "Z "
 
-                # Bottom surface (YZ-plane)
-                svg += f"M{self.by[0]:g},{self.bz[0]:g} "
+                # Bottom surface (ZY-plane)
+                svg += f"M{self.bz[0]:g},{self.by[0]:g} "
                 for s in range(1, SUBDIV):
-                    svg += f"L{self.by[s]:g},{self.bz[s]:g} "
+                    svg += f"L{self.bz[s]:g},{self.by[s]:g} "
                 svg += "Z "
 
                 # 'Vertical' spokes connecting top and bottom surfaces
                 for s in range(SUBDIV):
                     svg += (
-                        f"M{self.ty[s]:g},{self.tz[s]:g} "
-                        f"L{self.by[s]:g},{self.bz[s]:g} "
+                        f"M{self.tz[s]:g},{self.ty[s]:g} "
+                        f"L{self.bz[s]:g},{self.by[s]:g} "
                     )
 
             case "zx":
@@ -193,7 +193,7 @@ class Cone(ThreeD_object):
         return svg.strip()
 
     def draw_on(self, views):
-        for view in ["xy", "yz", "zx"]:
+        for view in ["xy", "zy", "zx"]:
             root = views[view]["canvas"].get_root_item()
             GooCanvas.CanvasPath(
                 parent=root,
@@ -219,7 +219,7 @@ class MainWindow(Gtk.Window):
 
         self.path = GooCanvas.CanvasPath(
             parent=cvroot,
-            data=cone.to_svg(),
+            data=cone.to_svg("xy"),
             line_width=1,
             stroke_color="Black",
             fill_color=None,

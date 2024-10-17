@@ -34,7 +34,7 @@ from povview_things import Vec3, Cone
 from pdb import set_trace as st
 
 
-TEST_OBJ = ["cone", [[-13.0, 12.34, -12.23], 11, [-13.0, -23.34, -12.23], 2]]
+TEST_OBJ = ["cone", [[-13.0, 12.34, -20], 11, [-13.0, -23.34, -12.23], 2]]
 
 COLORS = {
     "White": (1, 1, 1),
@@ -56,7 +56,7 @@ class Views(Gtk.Grid):
         self.objs = []
 
         self.views = {}
-        for x, y, lbl in [(0, 0, "xy"), (1, 0, "yz"), (0, 1, "zx")]:
+        for x, y, lbl in [(0, 0, "xy"), (1, 0, "zy"), (0, 1, "zx")]:
             frame = Gtk.Frame(label=lbl, label_xalign=0.04, hexpand=True, vexpand=True)
             self.attach(frame, x, y, 1, 1)
 
