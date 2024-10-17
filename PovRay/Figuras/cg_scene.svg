@@ -1,0 +1,19 @@
+#include "colors.inc"
+
+camera {
+    location <-4, 3, 2>
+    look_at <0, 0, 0>
+    up <0, 1, 0>
+}
+
+light_source {
+    <5, 8, -5>
+    color rgb <1, 1, 1>
+}
+
+box {
+    <1, 1, 1>, <-1, -1, -1>
+    pigment {
+        color rgb <1, 1, 1>
+    }
+}
