@@ -54,10 +54,10 @@ def make_parser():
     object_modifiers = pigment
 
     obj = (
-        pp.MatchFirst(pp.Keyword(x) for x in ["sphere"])
+        pp.MatchFirst(pp.Keyword(x) for x in ["ovus"])
         + "{"
-        + vector3
-        + ","
+        + ufloat
+        + pp.Suppress(",")
         + ufloat
         + object_modifiers
         + "}"
