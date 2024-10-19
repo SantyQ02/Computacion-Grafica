@@ -77,17 +77,18 @@ class RGBA:
 
 
 class Cone(ThreeD_object):
-    """tc      self.tc     vec3    Cone top center
+    """
+    tc      self.tc     vec3    Cone top center
     tr      self.tr     float   Cone top radius
     bc      self.bc     vec3    Cone bottom center
     br      self.br     float   Cone bottom radius
     """
 
-    def __init__(self, cone_par):
-        self.tc = cone_par[0]
-        self.tr = cone_par[1]
-        self.bc = cone_par[2]
-        self.br = cone_par[3]
+    def __init__(self, cone_data):
+        self.tc = cone_data[0]
+        self.tr = cone_data[1]
+        self.bc = cone_data[2]
+        self.br = cone_data[3]
 
         self.create_wireframe()
 
@@ -204,50 +205,39 @@ class Cone(ThreeD_object):
             )
 
 
-class MainWindow(Gtk.Window):
-    def __init__(self):
-        super(MainWindow, self).__init__()
-        self.connect("destroy", lambda x: Gtk.main_quit())
-        self.set_default_size(400, 300)
+class Ovus(ThreeD_object):
+    def __init__(self, ovus_data):
+        self.bottom_radius = ovus_data[0]
+        self.top_radius = ovus_data[1]
 
-        self.canvas = GooCanvas.Canvas(
-            automatic_bounds=True, bounds_from_origin=False, bounds_padding=10
-        )
-        cvroot = self.canvas.get_root_item()
-
-        cone = Cone([[20, 20, 30], 20, [20, -30, 30], 30])
-
-        self.path = GooCanvas.CanvasPath(
-            parent=cvroot,
-            data=cone.to_svg("xy"),
-            line_width=1,
-            stroke_color="Black",
-            fill_color=None,
+    def __str__(self):
+        return (
+            f"Ovus:\n"
+            f"bottom radius: {self.bottom_radius:10g}\n"
+            f"top radius:    {self.top_radius:10g}\n"
         )
 
-        bounds = self.canvas.get_bounds()
-        print("Bounds:", bounds)
-        self.set_scale(4)
+    def create_wireframe(self):
+        pass
 
-        self.add(self.canvas)
-        self.show_all()
+    def to_svg(self, view):
+        match view:
+            case "xy":
+                pass
+            case "zy":
+                pass
+            case "zx":
+                pass
+            case _:
+                raise ValueError("Invalid view")
 
-    def run(self):
-        Gtk.main()
-
-    def set_scale(self, scale):
-        self.canvas.set_scale(scale)
-        self.path.set_property("line_width", 1 / scale)
-
-
-def main(args):
-    mainwdw = MainWindow()
-    mainwdw.run()
-
-    return 0
-
-
-if __name__ == "__main__":
-    import sys
-
-    sys.exit(main(sys.argv))
+    def draw_on(self, views):
+        for view in ["xy", "zy", "zx"]:
+            root = views[view]["canvas"].get_root_item()
+            GooCanvas.CanvasPath(
+                parent=root,
+                data=self.to_svg(view),
+                line_width=1,
+                stroke_color="Black",
+                fill_color=None,
+            )

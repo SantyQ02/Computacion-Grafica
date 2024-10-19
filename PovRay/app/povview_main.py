@@ -30,11 +30,12 @@ gi.require_version("GooCanvas", "3.0")
 from gi.repository import Gtk, GooCanvas
 
 from main_menu import Main_menu
-from povview_things import Vec3, Cone
+from povview_things import Vec3, Cone, Ovus
 from pdb import set_trace as st
 
 
-TEST_OBJ = ["cone", [[-13.0, 12.34, -20], 11, [-13.0, -23.34, -12.23], 2]]
+TEST_CONE = ["cone", [[-13.0, 12.34, -20], 11, [-13.0, -23.34, -12.23], 2]]
+TEST_OVUS = ["ovus", [1.0, 0.5]]
 
 COLORS = {
     "White": (1, 1, 1),
@@ -67,10 +68,17 @@ class Views(Gtk.Grid):
             self.views[lbl] = {"frame": frame, "canvas": canvas}
 
     def add_object(self, obj):
-        if obj[0] == "cone":
-            c = Cone(obj[1])
-            self.objs.append(c)
-            c.draw_on(self.views)
+        match obj[0]:
+            case "cone":
+                c = Cone(obj[1])
+                self.objs.append(c)
+                c.draw_on(self.views)
+            case "ovus":
+                o = Ovus(obj[1])
+                self.objs.append(o)
+                o.draw_on(self.views)
+            case _:
+                raise ValueError(f"Unknown object type: {obj[0]}")
 
 
 class MainWindow(Gtk.Window):
@@ -81,7 +89,7 @@ class MainWindow(Gtk.Window):
 
         mm = self.make_main_menu()
 
-        cmd_entry = Gtk.Entry(text=TEST_OBJ, hexpand=True)
+        cmd_entry = Gtk.Entry(text=TEST_OVUS, hexpand=True)
         cmd_entry.connect("activate", self.on_cmd_entry_activate)
 
         self.views = Views()
@@ -108,11 +116,15 @@ class MainWindow(Gtk.Window):
         )
 
         mm.add_items_to("_Tests", (("Add Cone to viewer", self.on_add_cone_clicked),))
+        mm.add_items_to("_Tests", (("Add Ovus to viewer", self.on_add_ovus_clicked),))
 
         return mm
 
     def on_add_cone_clicked(self, menuitem):
-        self.views.add_object(TEST_OBJ)
+        self.views.add_object(TEST_CONE)
+
+    def on_add_ovus_clicked(self, menuitem):
+        self.views.add_object(TEST_OVUS)
 
     def on_open_pov_clicked(self, menuitem):
         fc = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.OPEN)

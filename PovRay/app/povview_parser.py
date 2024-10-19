@@ -4,15 +4,18 @@ import pyparsing as pp
 def make_parser():
     include_line = pp.Suppress(pp.LineStart() + "#" + pp.rest_of_line)
 
-    sign = pp.Optional(pp.one_of("+ -"))
+    sign = pp.Optional(pp.oneOf("+ -"))
 
     uinteger = pp.Word("123456789", pp.nums) ^ "0"
-    uinteger.set_parse_action(lambda t: int(t[0], 10))
     sinteger = pp.Combine(sign + uinteger)
-    sinteger.set_parse_action(lambda t: int(t[0], 10))
-    ufloat = uinteger + pp.Optional("." + uinteger)
+    expon = pp.one_of("e E") + sinteger
+
+    ufloat = pp.Combine(uinteger + pp.Optional("." + uinteger) + pp.Optional(expon))
+    sfloat = pp.Combine(sinteger + pp.Optional("." + uinteger) + pp.Optional(expon))
+
+    uinteger.set_parse_action(lambda t: int(t[0]))
+    sinteger.set_parse_action(lambda t: int(t[0]))
     ufloat.set_parse_action(lambda t: float(t[0]))
-    sfloat = pp.Combine(sign + ufloat)
     sfloat.set_parse_action(lambda t: float(t[0]))
 
     vector3 = pp.Group(
