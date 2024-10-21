@@ -8,7 +8,7 @@ from gi.repository import Gtk, GooCanvas
 
 from math import cos, sin, pi, sqrt
 
-SUBDIV = 12
+SUBDIV = 100
 
 
 class ThreeD_object:
@@ -254,6 +254,9 @@ class Ovus(ThreeD_object):
     def get_radius(self, initial_radius: float, relative_height: float):
         return sqrt(initial_radius**2 - relative_height**2)
 
+    def lerp(self, alpha, A, B):
+        return A + (B - A) * alpha
+
     def create_wireframe(self):
         self.tx = []
         self.ty = []
@@ -310,77 +313,78 @@ class Ovus(ThreeD_object):
                     svg += f"L{self.bx[s]:g},{self.by[s]:g} "
                 svg += "Z "
 
+                # Meridian lines
                 for s in range(SUBDIV):
+                    svg += f"M{self.bpx:g},{self.bpy:g} "
                     if self.tx[s] > self.base_point[0]:
                         svg += (
-                            f"M{self.bpx:g},{self.bpy:g} "
                             f"A{self.bottom_radius:g},{self.bottom_radius:g} 0 0,0 {self.bx[s]:g},{self.by[s]:g} "
                             f"A{self.top_radius+self.bottom_radius:g},{self.top_radius+self.bottom_radius:g} 0 0,0 {self.tx[s]:g},{self.ty[s]:g} "
                             f"A{self.top_radius:g},{self.top_radius:g} 0 0,0 {self.tpx:g},{self.tpy:g} "
                         )
                     elif self.tx[s] < self.base_point[0]:
                         svg += (
-                            f"M{self.bpx:g},{self.bpy:g} "
                             f"A{self.bottom_radius:g},{self.bottom_radius:g} 0 0,1 {self.bx[s]:g},{self.by[s]:g} "
                             f"A{self.top_radius+self.bottom_radius:g},{self.top_radius+self.bottom_radius:g} 0 0,1 {self.tx[s]:g},{self.ty[s]:g} "
                             f"A{self.top_radius:g},{self.top_radius:g} 0 0,1 {self.tpx:g},{self.tpy:g} "
                         )
                     else:
                         svg += (
-                            f"M{self.bpx:g},{self.bpy:g} "
                             f"L{self.bx[s]:g},{self.by[s]:g} "
                             f"L{self.tx[s]:g},{self.ty[s]:g} "
                             f"L{self.tpx:g},{self.tpy:g} "
                         )
 
             case "zy":
-                # Top circle (XY-plane)
+                # Top circle (ZY-plane)
                 svg = f"M{self.tz[0]:g},{self.ty[0]:g} "
                 for s in range(1, SUBDIV):
                     svg += f"L{self.tz[s]:g},{self.ty[s]:g} "
                 svg += "Z "
 
-                # Bottom circle (XY-plane)
+                # Bottom circle (ZY-plane)
                 svg += f"M{self.bz[0]:g},{self.by[0]:g} "
                 for s in range(1, SUBDIV):
                     svg += f"L{self.bz[s]:g},{self.by[s]:g} "
                 svg += "Z "
 
+                # Meridian lines
                 for s in range(SUBDIV):
-                    if self.tz[s] > self.base_point[0]:
+                    svg += f"M{self.bpz:g},{self.bpy:g} "
+
+                    if self.tz[s] > self.base_point[2]:
                         svg += (
-                            f"M{self.bpz:g},{self.bpy:g} "
                             f"A{self.bottom_radius:g},{self.bottom_radius:g} 0 0,0 {self.bz[s]:g},{self.by[s]:g} "
                             f"A{self.top_radius+self.bottom_radius:g},{self.top_radius+self.bottom_radius:g} 0 0,0 {self.tz[s]:g},{self.ty[s]:g} "
                             f"A{self.top_radius:g},{self.top_radius:g} 0 0,0 {self.tpz:g},{self.tpy:g} "
                         )
-                    elif self.tz[s] < self.base_point[0]:
+                    elif self.tz[s] < self.base_point[2]:
                         svg += (
-                            f"M{self.bpz:g},{self.bpy:g} "
                             f"A{self.bottom_radius:g},{self.bottom_radius:g} 0 0,1 {self.bz[s]:g},{self.by[s]:g} "
                             f"A{self.top_radius+self.bottom_radius:g},{self.top_radius+self.bottom_radius:g} 0 0,1 {self.tz[s]:g},{self.ty[s]:g} "
                             f"A{self.top_radius:g},{self.top_radius:g} 0 0,1 {self.tpz:g},{self.tpy:g} "
                         )
                     else:
                         svg += (
-                            f"M{self.bpz:g},{self.bpy:g} "
                             f"L{self.bz[s]:g},{self.by[s]:g} "
                             f"L{self.tz[s]:g},{self.ty[s]:g} "
                             f"L{self.tpz:g},{self.tpy:g} "
                         )
+
             case "zx":
-                # Top circle (XY-plane)
+                # Top circle (ZX-plane)
                 svg = f"M{self.tz[0]:g},{self.tx[0]:g} "
                 for s in range(1, SUBDIV):
                     svg += f"L{self.tz[s]:g},{self.tx[s]:g} "
                 svg += "Z "
 
-                # Bottom circle (XY-plane)
+                # Bottom circle (ZX-plane)
                 svg += f"M{self.bz[0]:g},{self.bx[0]:g} "
                 for s in range(1, SUBDIV):
                     svg += f"L{self.bz[s]:g},{self.bx[s]:g} "
                 svg += "Z "
 
+                # Meridian lines
                 for s in range(SUBDIV):
                     svg += (
                         f"M{self.bpz:g},{self.bpx:g} "
@@ -388,6 +392,7 @@ class Ovus(ThreeD_object):
                         f"L{self.tz[s]:g},{self.tx[s]:g} "
                         f"L{self.tpz:g},{self.tpx:g} "
                     )
+
             case _:
                 raise ValueError("Invalid view")
 
