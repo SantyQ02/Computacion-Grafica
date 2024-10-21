@@ -34,8 +34,18 @@ def make_parser():
         + pp.Suppress(">")
     )
 
+    color_vector3 = pp.Group(
+        pp.Suppress("<")
+        + sfloat("r")
+        + pp.Suppress(",")
+        + sfloat("g")
+        + pp.Suppress(",")
+        + sfloat("b")
+        + pp.Suppress(">")
+    )
+
     # Definir vector RGB
-    rgb_vector3 = pp.Keyword("rgb") + vector3("color")
+    rgb_vector3 = pp.Keyword("rgb") + color_vector3("color")
 
     # Definir light_source
     light = pp.Group(

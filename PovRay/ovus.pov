@@ -11,7 +11,7 @@ camera {
 }
 
 ovus {
-    1, 0.5
+    100, 50
     pigment {
         color rgb <1, 1, 0>
     }

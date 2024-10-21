@@ -10,6 +10,7 @@ from gi.repository import Gtk, GooCanvas
 from main_menu import Main_menu
 from povview_things import Vec3, Cone, Ovus
 from pdb import set_trace as st
+from povview_parser import parse
 
 
 TEST_CONE = ["cone", [[-13.0, 12.34, -20], 11, [-13.0, -23.34, -12.23], 2]]
@@ -45,18 +46,24 @@ class Views(Gtk.Grid):
             frame.add(canvas)
             self.views[lbl] = {"frame": frame, "canvas": canvas}
 
+    def clear(self):
+        for view in self.views:
+            root = self.views[view]["canvas"].get_root_item()
+            for i in range(root.get_n_children()):
+                root.get_child(i).remove()
+
     def add_object(self, obj):
-        match obj[0]:
+        match obj["type"]:
             case "cone":
-                c = Cone(obj[1])
+                c = Cone(obj)
                 self.objs.append(c)
                 c.draw_on(self.views)
             case "ovus":
-                o = Ovus(obj[1])
+                o = Ovus(obj)
                 self.objs.append(o)
                 o.draw_on(self.views)
             case _:
-                raise ValueError(f"Unknown object type: {obj[0]}")
+                raise ValueError(f"Unknown object type: {obj['type']}")
 
 
 class MainWindow(Gtk.Window):
@@ -87,7 +94,8 @@ class MainWindow(Gtk.Window):
         mm.add_items_to(
             "_File",
             (
-                ("Open POV scene...", self.on_open_pov_clicked),
+                ("Open POV file", self.on_open_pov_clicked),
+                ("Clear scene", self.on_clear_clicked),
                 (None, None),
                 ("_Quit", self.on_quit_clicked),
             ),
@@ -103,6 +111,9 @@ class MainWindow(Gtk.Window):
 
     def on_add_ovus_clicked(self, menuitem):
         self.views.add_object(TEST_OVUS)
+
+    def on_clear_clicked(self, menuitem):
+        self.views.clear()
 
     def on_open_pov_clicked(self, menuitem):
         fc = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.OPEN)
@@ -120,9 +131,16 @@ class MainWindow(Gtk.Window):
             fc.add_filter(filter)
 
         if fc.run() == Gtk.ResponseType.ACCEPT:
-            print(fc.get_filename())
+            self.file = fc.get_filename()
+            print(self.file)
 
         fc.destroy()
+
+        self.views.clear()
+
+        # TODO: Unhardcode this on the future
+        self.object = parse(self.file)["objects"][0]
+        self.views.add_object(self.object)
 
     def on_quit_clicked(self, menuitem):
         Gtk.main_quit()

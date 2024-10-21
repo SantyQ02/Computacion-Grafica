@@ -8,7 +8,6 @@ from gi.repository import Gtk, GooCanvas
 from sympy import symbols, Eq, solve, re, im, N
 
 from math import cos, sin, pi, sqrt
-from icecream import ic
 
 CIRCULAR_SUBDIV = 100
 VERTICAL_SUBDIV = 100
@@ -65,6 +64,7 @@ class Cone(ThreeD_object):
     br      self.br     float   Cone bottom radius
     """
 
+    # TODO: Update interface to parsed values
     def __init__(self, cone_data):
         self.tc = cone_data[0]
         self.tr = cone_data[1]
@@ -182,11 +182,11 @@ class Cone(ThreeD_object):
 class Ovus(ThreeD_object):
     def __init__(self, ovus_data):
         self.base_point = (0, 0, 0)
-        self.bottom_radius = ovus_data[0]
-        self.top_radius = ovus_data[1]
+        self.bottom_radius = ovus_data["bottom_radius"]
+        self.top_radius = ovus_data["top_radius"]
+        self.color = ovus_data["color"]
 
         self.bottom_interval, self.top_interval = self.get_intervals()
-        ic(self.bottom_interval, self.top_interval)
 
         self.create_wireframe()
 
@@ -267,8 +267,6 @@ class Ovus(ThreeD_object):
         self.tpx = self.base_point[0]
         self.tpy = self.base_point[1] + self.bottom_radius + self.top_radius
         self.tpz = self.base_point[2]
-
-        ic(self.bpy, self.tpy)
 
         self.vertical_floors = []
         max_radius = 0
