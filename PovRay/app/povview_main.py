@@ -13,8 +13,16 @@ from pdb import set_trace as st
 from povview_parser import parse
 
 
-TEST_CONE = ["cone", [[-13.0, 12.34, -20], 11, [-13.0, -23.34, -12.23], 2]]
-TEST_OVUS = ["ovus", [100.0, 150.0]]
+TEST_CONE = {
+    "type": "cone",
+    "data": [[-13.0, 12.34, -20], 11, [-13.0, -23.34, -12.23], 2],
+}
+TEST_OVUS = {
+    "type": "ovus",
+    "bottom_radius": 100.0,
+    "top_radius": 150.0,
+    "color": {"r": 1.0, "g": 0.0, "b": 0.0},
+}
 
 COLORS = {
     "White": (1, 1, 1),
@@ -55,7 +63,7 @@ class Views(Gtk.Grid):
     def add_object(self, obj):
         match obj["type"]:
             case "cone":
-                c = Cone(obj)
+                c = Cone(obj["data"])
                 self.objs.append(c)
                 c.draw_on(self.views)
             case "ovus":
