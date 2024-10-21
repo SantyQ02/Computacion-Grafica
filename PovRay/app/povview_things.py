@@ -71,7 +71,7 @@ class Cone(ThreeD_object):
         self.bc = cone_data[2]
         self.br = cone_data[3]
 
-        self.create_wireframe()
+        self.create_ovus_wireframe()
 
     def __str__(self):
         return (
@@ -82,7 +82,7 @@ class Cone(ThreeD_object):
             f" radius: {self.br:10g}\n"
         )
 
-    def create_wireframe(self):
+    def create_ovus_wireframe(self):
         self.tx = []
         self.ty = []
         self.tz = []
@@ -186,9 +186,11 @@ class Ovus(ThreeD_object):
         self.top_radius = ovus_data["top_radius"]
         self.color = ovus_data["color"]
 
-        self.bottom_interval, self.top_interval = self.get_intervals()
-
-        self.create_wireframe()
+        if 0 < self.top_radius < 2 * self.bottom_radius:
+            self.bottom_interval, self.top_interval = self.get_intervals()
+            self.create_ovus_wireframe()
+        else:
+            self.create_sphere_wireframe()
 
     def __str__(self):
         return (
@@ -258,7 +260,7 @@ class Ovus(ThreeD_object):
         else:
             return self.get_radius(self.top_radius, y - self.top_center[1])
 
-    def create_wireframe(self):
+    def create_ovus_wireframe(self):
         circ_sub = 2 * pi / CIRCULAR_SUBDIV
 
         self.bpx = self.base_point[0]
@@ -273,6 +275,40 @@ class Ovus(ThreeD_object):
         for i in range(1, VERTICAL_SUBDIV):
             y = (abs(self.tpy - self.bpy) / VERTICAL_SUBDIV) * i + self.bpy
             radius = self.get_ovus_radius(y)
+            if radius > max_radius:
+                max_radius = radius
+                self.max_radius_floor = i - 1
+
+            self.vertical_floors.append(
+                [
+                    {
+                        "x": self.base_point[0] + radius * cos(circ_sub * j),
+                        "y": -y,
+                        "z": self.base_point[2] + radius * sin(circ_sub * j),
+                    }
+                    for j in range(CIRCULAR_SUBDIV)
+                ]
+            )
+
+        self.bpy, self.tpy = -self.bpy, -self.tpy
+
+    def create_sphere_wireframe(self):
+        circ_sub = 2 * pi / CIRCULAR_SUBDIV
+
+        sphere_radius = max(self.bottom_radius, self.top_radius)
+
+        self.bpx = self.base_point[0]
+        self.bpy = self.base_point[1] - sphere_radius
+        self.bpz = self.base_point[2]
+        self.tpx = self.base_point[0]
+        self.tpy = self.base_point[1] + sphere_radius
+        self.tpz = self.base_point[2]
+
+        self.vertical_floors = []
+        max_radius = 0
+        for i in range(1, VERTICAL_SUBDIV):
+            y = (abs(self.tpy - self.bpy) / VERTICAL_SUBDIV) * i + self.bpy
+            radius = self.get_radius(sphere_radius, y - self.base_point[1])
             if radius > max_radius:
                 max_radius = radius
                 self.max_radius_floor = i - 1
