@@ -1,11 +1,13 @@
 import pyparsing as pp
+import json
+import sys
 
 
 def make_parser():
-    # Define comments to be ignored
+    # Definir comentarios que serán ignorados
     include_line = pp.Suppress(pp.LineStart() + "#" + pp.rest_of_line)
 
-    # Define number parsing
+    # Definir el análisis de números
     sign = pp.Optional(pp.oneOf("+ -"))
 
     uinteger = pp.Word("123456789", pp.nums) ^ "0"
@@ -15,13 +17,13 @@ def make_parser():
     ufloat = pp.Combine(uinteger + pp.Optional("." + uinteger) + pp.Optional(expon))
     sfloat = pp.Combine(sinteger + pp.Optional("." + uinteger) + pp.Optional(expon))
 
-    # Set parse actions to convert strings to appropriate types
+    # Establecer acciones de análisis para convertir cadenas a tipos apropiados
     uinteger.set_parse_action(lambda t: int(t[0]))
     sinteger.set_parse_action(lambda t: int(t[0]))
     ufloat.set_parse_action(lambda t: float(t[0]))
     sfloat.set_parse_action(lambda t: float(t[0]))
 
-    # Define a 3D vector
+    # Definir un vector 3D
     vector3 = pp.Group(
         pp.Suppress("<")
         + sfloat("x")
@@ -32,10 +34,10 @@ def make_parser():
         + pp.Suppress(">")
     )
 
-    # Define RGB vector
+    # Definir vector RGB
     rgb_vector3 = pp.Keyword("rgb") + vector3("color")
 
-    # Define light_source
+    # Definir light_source
     light = pp.Group(
         pp.Keyword("light_source")
         + pp.Suppress("{")
@@ -44,9 +46,9 @@ def make_parser():
         + pp.Keyword("color")
         + rgb_vector3
         + pp.Suppress("}")
-    )
+    ).setResultsName("light_sources", listAllMatches=True)
 
-    # Define camera
+    # Definir camera
     camera = pp.Group(
         pp.Keyword("camera")
         + pp.Suppress("{")
@@ -57,9 +59,9 @@ def make_parser():
         + pp.Keyword("up")
         + vector3("up")
         + pp.Suppress("}")
-    )
+    ).setResultsName("cameras", listAllMatches=True)
 
-    # Define pigment (optional)
+    # Definir pigment (opcional)
     pigment = pp.Optional(
         pp.Keyword("pigment")
         + pp.Suppress("{")
@@ -68,10 +70,10 @@ def make_parser():
         + pp.Suppress("}")
     )
 
-    # Define object modifiers
+    # Definir modificadores de objeto
     object_modifiers = pigment
 
-    # Define object (e.g., ovus)
+    # Definir objeto (e.g., ovus)
     obj = pp.Group(
         pp.MatchFirst(pp.Keyword(x) for x in ["ovus"])("type")
         + pp.Suppress("{")
@@ -80,17 +82,15 @@ def make_parser():
         + ufloat("top_radius")
         + pp.Optional(object_modifiers)
         + pp.Suppress("}")
-    )
+    ).setResultsName("objects", listAllMatches=True)
 
-    # Define multiple lights, cameras, and objects with result names
-    lights = pp.OneOrMore(light).setResultsName("light_sources")
-    cameras = pp.OneOrMore(camera).setResultsName("cameras")
-    objects = pp.OneOrMore(obj).setResultsName("objects")
+    # Definir elemento que puede ser un light, camera o object
+    element = light | camera | obj
 
-    # Define the overall parser structure
-    parser = pp.ZeroOrMore(include_line) + lights + cameras + objects
+    # Definir el parser general que permite cualquier orden de elementos y comentarios
+    parser = pp.ZeroOrMore(include_line | element)
 
-    # Convert the results to a dictionary
+    # Convertir los resultados a un diccionario
     parser = pp.Dict(parser)
 
     return parser
@@ -102,7 +102,12 @@ def parse(filename):
     with open(filename, "r", encoding="utf-8") as f:
         file_contents = f.read()
 
-    res = parser.parse_string(file_contents, parse_all=True)
+    try:
+        res = parser.parse_string(file_contents, parse_all=True)
+    except pp.ParseException as pe:
+        print("Parsing failed:", pe)
+        sys.exit(1)
+
     result_dict = res.as_dict()
 
     result = {
@@ -115,8 +120,9 @@ def parse(filename):
 
 
 def main(args):
-    import sys
-    import json
+    if len(args) < 2:
+        print("Uso: python parser.py <archivo_entrada.pov>")
+        return 1
 
     result = parse(args[1])
 
@@ -126,6 +132,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-    import sys
-
     sys.exit(main(sys.argv))
