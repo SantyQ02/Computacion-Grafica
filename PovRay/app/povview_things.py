@@ -1,27 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-#
-#  povview_things.py
-#
-#  Copyright 2024 John Coppens <john@jcoppens.com>
-#
-#  This program is free software; you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation; either version 2 of the License, or
-#  (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program; if not, write to the Free Software
-#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
-#  MA 02110-1301, USA.
-#
-#
-
 
 import gi
 
@@ -29,7 +6,7 @@ gi.require_version("Gtk", "3.0")
 gi.require_version("GooCanvas", "3.0")
 from gi.repository import Gtk, GooCanvas
 
-from math import cos, sin, pi
+from math import cos, sin, pi, sqrt
 
 SUBDIV = 12
 
@@ -119,13 +96,6 @@ class Cone(ThreeD_object):
             self.by += [-self.bc[1]]
             self.bz += [self.bc[2] + self.br * sin(dsub * i)]
 
-        print(self.tx)
-        print(self.ty)
-        print(self.tz)
-        print(self.bx)
-        print(self.by)
-        print(self.bz)
-
     def to_svg(self, view):
         match view:
             case "xy":
@@ -207,8 +177,13 @@ class Cone(ThreeD_object):
 
 class Ovus(ThreeD_object):
     def __init__(self, ovus_data):
+        self.base_point = (0, 0, 0)
         self.bottom_radius = ovus_data[0]
         self.top_radius = ovus_data[1]
+
+        self.A, self.B, self.C, self.D = self.get_ABCD()
+
+        self.create_wireframe()
 
     def __str__(self):
         return (
@@ -217,19 +192,206 @@ class Ovus(ThreeD_object):
             f"top radius:    {self.top_radius:10g}\n"
         )
 
+    def get_intersection(
+        self, *, ctr1: tuple[float], r1: float, ctr2: tuple[float], r2: float
+    ):
+        from sympy import symbols, Eq, solve, re, im
+
+        x, y = symbols("x y")
+
+        x1, y1, r1 = ctr1[0], ctr1[1], r1
+        x2, y2, r2 = ctr2[0], ctr2[1], r2
+
+        circle1 = Eq((x - x1) ** 2 + (y - y1) ** 2, r1**2)
+        circle2 = Eq((x - x2) ** 2 + (y - y2) ** 2, r2**2)
+
+        solutions = solve((circle1, circle2), (x, y))
+        if any(
+            [im(solution[0]) != 0 or im(solution[1]) != 0 for solution in solutions]
+        ):
+            solutions = (re(solutions[0][0]), re(solutions[0][1]))
+
+        return solutions
+
+    def get_ABCD(self):
+        self.ctr1 = (self.base_point[0], self.base_point[1])
+        self.ctr2 = (self.base_point[0], self.base_point[1] + self.bottom_radius)
+        join_curve_centers = self.get_intersection(
+            ctr1=self.ctr2,
+            r1=self.bottom_radius,
+            ctr2=self.ctr1,
+            r2=self.top_radius,
+        )
+
+        # TODO: Maybe check len(join_curve_centers) == 2
+        A = self.get_intersection(
+            ctr1=join_curve_centers[1],
+            r1=self.bottom_radius + self.top_radius,
+            ctr2=self.ctr1,
+            r2=self.bottom_radius,
+        )
+        B = self.get_intersection(
+            ctr1=join_curve_centers[1],
+            r1=self.bottom_radius + self.top_radius,
+            ctr2=self.ctr2,
+            r2=self.top_radius,
+        )
+        C = self.get_intersection(
+            ctr1=join_curve_centers[0],
+            r1=self.bottom_radius + self.top_radius,
+            ctr2=self.ctr2,
+            r2=self.top_radius,
+        )
+        D = self.get_intersection(
+            ctr1=join_curve_centers[0],
+            r1=self.bottom_radius + self.top_radius,
+            ctr2=self.ctr1,
+            r2=self.bottom_radius,
+        )
+
+        return A, B, C, D
+
+    def get_radius(self, initial_radius: float, relative_height: float):
+        return sqrt(initial_radius**2 - relative_height**2)
+
     def create_wireframe(self):
-        pass
+        self.tx = []
+        self.ty = []
+        self.tz = []
+        self.bx = []
+        self.by = []
+        self.bz = []
+        dsub = 2 * pi / SUBDIV
+
+        for i in range(SUBDIV):
+            self.tx += [
+                self.base_point[0]
+                + self.get_radius(self.top_radius, self.B[1] - self.ctr2[1])
+                * cos(dsub * i)
+            ]
+            self.ty += [-self.B[1]]
+            self.tz += [
+                self.base_point[2]
+                + self.get_radius(self.top_radius, self.B[1] - self.ctr2[1])
+                * sin(dsub * i)
+            ]
+
+            self.bx += [
+                self.base_point[0]
+                + self.get_radius(self.bottom_radius, self.A[1] - self.ctr1[1])
+                * cos(dsub * i)
+            ]
+            self.by += [-self.A[1]]
+            self.bz += [
+                self.base_point[2]
+                + self.get_radius(self.bottom_radius, self.A[1] - self.ctr1[1])
+                * sin(dsub * i)
+            ]
+
+        self.bpx = self.base_point[0]
+        self.bpy = -(self.base_point[1] - self.bottom_radius)
+        self.bpz = self.base_point[2]
+        self.tpx = self.base_point[0]
+        self.tpy = -(self.base_point[1] + self.bottom_radius + self.top_radius)
+        self.tpz = self.base_point[2]
 
     def to_svg(self, view):
         match view:
             case "xy":
-                pass
+                # Top circle (XY-plane)
+                svg = f"M{self.tx[0]:g},{self.ty[0]:g} "
+                for s in range(1, SUBDIV):
+                    svg += f"L{self.tx[s]:g},{self.ty[s]:g} "
+                svg += "Z "
+
+                # Bottom circle (XY-plane)
+                svg += f"M{self.bx[0]:g},{self.by[0]:g} "
+                for s in range(1, SUBDIV):
+                    svg += f"L{self.bx[s]:g},{self.by[s]:g} "
+                svg += "Z "
+
+                for s in range(SUBDIV):
+                    if self.tx[s] > self.base_point[0]:
+                        svg += (
+                            f"M{self.bpx:g},{self.bpy:g} "
+                            f"A{self.bottom_radius:g},{self.bottom_radius:g} 0 0,0 {self.bx[s]:g},{self.by[s]:g} "
+                            f"A{self.top_radius+self.bottom_radius:g},{self.top_radius+self.bottom_radius:g} 0 0,0 {self.tx[s]:g},{self.ty[s]:g} "
+                            f"A{self.top_radius:g},{self.top_radius:g} 0 0,0 {self.tpx:g},{self.tpy:g} "
+                        )
+                    elif self.tx[s] < self.base_point[0]:
+                        svg += (
+                            f"M{self.bpx:g},{self.bpy:g} "
+                            f"A{self.bottom_radius:g},{self.bottom_radius:g} 0 0,1 {self.bx[s]:g},{self.by[s]:g} "
+                            f"A{self.top_radius+self.bottom_radius:g},{self.top_radius+self.bottom_radius:g} 0 0,1 {self.tx[s]:g},{self.ty[s]:g} "
+                            f"A{self.top_radius:g},{self.top_radius:g} 0 0,1 {self.tpx:g},{self.tpy:g} "
+                        )
+                    else:
+                        svg += (
+                            f"M{self.bpx:g},{self.bpy:g} "
+                            f"L{self.bx[s]:g},{self.by[s]:g} "
+                            f"L{self.tx[s]:g},{self.ty[s]:g} "
+                            f"L{self.tpx:g},{self.tpy:g} "
+                        )
+
             case "zy":
-                pass
+                # Top circle (XY-plane)
+                svg = f"M{self.tz[0]:g},{self.ty[0]:g} "
+                for s in range(1, SUBDIV):
+                    svg += f"L{self.tz[s]:g},{self.ty[s]:g} "
+                svg += "Z "
+
+                # Bottom circle (XY-plane)
+                svg += f"M{self.bz[0]:g},{self.by[0]:g} "
+                for s in range(1, SUBDIV):
+                    svg += f"L{self.bz[s]:g},{self.by[s]:g} "
+                svg += "Z "
+
+                for s in range(SUBDIV):
+                    if self.tz[s] > self.base_point[0]:
+                        svg += (
+                            f"M{self.bpz:g},{self.bpy:g} "
+                            f"A{self.bottom_radius:g},{self.bottom_radius:g} 0 0,0 {self.bz[s]:g},{self.by[s]:g} "
+                            f"A{self.top_radius+self.bottom_radius:g},{self.top_radius+self.bottom_radius:g} 0 0,0 {self.tz[s]:g},{self.ty[s]:g} "
+                            f"A{self.top_radius:g},{self.top_radius:g} 0 0,0 {self.tpz:g},{self.tpy:g} "
+                        )
+                    elif self.tz[s] < self.base_point[0]:
+                        svg += (
+                            f"M{self.bpz:g},{self.bpy:g} "
+                            f"A{self.bottom_radius:g},{self.bottom_radius:g} 0 0,1 {self.bz[s]:g},{self.by[s]:g} "
+                            f"A{self.top_radius+self.bottom_radius:g},{self.top_radius+self.bottom_radius:g} 0 0,1 {self.tz[s]:g},{self.ty[s]:g} "
+                            f"A{self.top_radius:g},{self.top_radius:g} 0 0,1 {self.tpz:g},{self.tpy:g} "
+                        )
+                    else:
+                        svg += (
+                            f"M{self.bpz:g},{self.bpy:g} "
+                            f"L{self.bz[s]:g},{self.by[s]:g} "
+                            f"L{self.tz[s]:g},{self.ty[s]:g} "
+                            f"L{self.tpz:g},{self.tpy:g} "
+                        )
             case "zx":
-                pass
+                # Top circle (XY-plane)
+                svg = f"M{self.tz[0]:g},{self.tx[0]:g} "
+                for s in range(1, SUBDIV):
+                    svg += f"L{self.tz[s]:g},{self.tx[s]:g} "
+                svg += "Z "
+
+                # Bottom circle (XY-plane)
+                svg += f"M{self.bz[0]:g},{self.bx[0]:g} "
+                for s in range(1, SUBDIV):
+                    svg += f"L{self.bz[s]:g},{self.bx[s]:g} "
+                svg += "Z "
+
+                for s in range(SUBDIV):
+                    svg += (
+                        f"M{self.bpz:g},{self.bpx:g} "
+                        f"L{self.bz[s]:g},{self.bx[s]:g} "
+                        f"L{self.tz[s]:g},{self.tx[s]:g} "
+                        f"L{self.tpz:g},{self.tpx:g} "
+                    )
             case _:
                 raise ValueError("Invalid view")
+
+        return svg.strip()
 
     def draw_on(self, views):
         for view in ["xy", "zy", "zx"]:

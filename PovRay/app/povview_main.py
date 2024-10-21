@@ -35,7 +35,7 @@ from pdb import set_trace as st
 
 
 TEST_CONE = ["cone", [[-13.0, 12.34, -20], 11, [-13.0, -23.34, -12.23], 2]]
-TEST_OVUS = ["ovus", [1.0, 0.5]]
+TEST_OVUS = ["ovus", [100.0, 50.0]]
 
 COLORS = {
     "White": (1, 1, 1),
