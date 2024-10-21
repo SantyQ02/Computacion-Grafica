@@ -7,8 +7,10 @@ gi.require_version("GooCanvas", "3.0")
 from gi.repository import Gtk, GooCanvas
 
 from math import cos, sin, pi, sqrt
+from icecream import ic
 
-SUBDIV = 100
+CIRCULAR_SUBDIV = 20
+VERTICAL_SUBDIV = 20
 
 
 class ThreeD_object:
@@ -85,34 +87,34 @@ class Cone(ThreeD_object):
         self.bx = []
         self.by = []
         self.bz = []
-        dsub = 2 * pi / SUBDIV
+        circ_sub = 2 * pi / CIRCULAR_SUBDIV
 
-        for i in range(SUBDIV):
-            self.tx += [self.tc[0] + self.tr * cos(dsub * i)]
+        for i in range(CIRCULAR_SUBDIV):
+            self.tx += [self.tc[0] + self.tr * cos(circ_sub * i)]
             self.ty += [-self.tc[1]]
-            self.tz += [self.tc[2] + self.tr * sin(dsub * i)]
+            self.tz += [self.tc[2] + self.tr * sin(circ_sub * i)]
 
-            self.bx += [self.bc[0] + self.br * cos(dsub * i)]
+            self.bx += [self.bc[0] + self.br * cos(circ_sub * i)]
             self.by += [-self.bc[1]]
-            self.bz += [self.bc[2] + self.br * sin(dsub * i)]
+            self.bz += [self.bc[2] + self.br * sin(circ_sub * i)]
 
     def to_svg(self, view):
         match view:
             case "xy":
                 # Top surface (XY-plane)
                 svg = f"M{self.tx[0]:g},{self.ty[0]:g} "
-                for s in range(1, SUBDIV):
+                for s in range(1, CIRCULAR_SUBDIV):
                     svg += f"L{self.tx[s]:g},{self.ty[s]:g} "
                 svg += "Z "
 
                 # Bottom surface (XY-plane)
                 svg += f"M{self.bx[0]:g},{self.by[0]:g} "
-                for s in range(1, SUBDIV):
+                for s in range(1, CIRCULAR_SUBDIV):
                     svg += f"L{self.bx[s]:g},{self.by[s]:g} "
                 svg += "Z "
 
                 # 'Vertical' spokes connecting top and bottom surfaces
-                for s in range(SUBDIV):
+                for s in range(CIRCULAR_SUBDIV):
                     svg += (
                         f"M{self.tx[s]:g},{self.ty[s]:g} "
                         f"L{self.bx[s]:g},{self.by[s]:g} "
@@ -121,18 +123,18 @@ class Cone(ThreeD_object):
             case "zy":
                 # Top surface (ZY-plane)
                 svg = f"M{self.tz[0]:g},{self.ty[0]:g} "
-                for s in range(1, SUBDIV):
+                for s in range(1, CIRCULAR_SUBDIV):
                     svg += f"L{self.tz[s]:g},{self.ty[s]:g} "
                 svg += "Z "
 
                 # Bottom surface (ZY-plane)
                 svg += f"M{self.bz[0]:g},{self.by[0]:g} "
-                for s in range(1, SUBDIV):
+                for s in range(1, CIRCULAR_SUBDIV):
                     svg += f"L{self.bz[s]:g},{self.by[s]:g} "
                 svg += "Z "
 
                 # 'Vertical' spokes connecting top and bottom surfaces
-                for s in range(SUBDIV):
+                for s in range(CIRCULAR_SUBDIV):
                     svg += (
                         f"M{self.tz[s]:g},{self.ty[s]:g} "
                         f"L{self.bz[s]:g},{self.by[s]:g} "
@@ -141,18 +143,18 @@ class Cone(ThreeD_object):
             case "zx":
                 # Top surface (ZX-plane)
                 svg = f"M{self.tz[0]:g},{self.tx[0]:g} "
-                for s in range(1, SUBDIV):
+                for s in range(1, CIRCULAR_SUBDIV):
                     svg += f"L{self.tz[s]:g},{self.tx[s]:g} "
                 svg += "Z "
 
                 # Bottom surface (ZX-plane)
                 svg += f"M{self.bz[0]:g},{self.bx[0]:g} "
-                for s in range(1, SUBDIV):
+                for s in range(1, CIRCULAR_SUBDIV):
                     svg += f"L{self.bz[s]:g},{self.bx[s]:g} "
                 svg += "Z "
 
                 # 'Vertical' spokes connecting top and bottom surfaces
-                for s in range(SUBDIV):
+                for s in range(CIRCULAR_SUBDIV):
                     svg += (
                         f"M{self.tz[s]:g},{self.tx[s]:g} "
                         f"L{self.bz[s]:g},{self.bx[s]:g} "
@@ -181,7 +183,8 @@ class Ovus(ThreeD_object):
         self.bottom_radius = ovus_data[0]
         self.top_radius = ovus_data[1]
 
-        self.A, self.B, self.C, self.D = self.get_ABCD()
+        self.bottom_interval, self.top_interval = self.get_intervals()
+        ic(self.bottom_interval, self.top_interval)
 
         self.create_wireframe()
 
@@ -195,7 +198,7 @@ class Ovus(ThreeD_object):
     def get_intersection(
         self, *, ctr1: tuple[float], r1: float, ctr2: tuple[float], r2: float
     ):
-        from sympy import symbols, Eq, solve, re, im
+        from sympy import symbols, Eq, solve, re, im, N
 
         x, y = symbols("x y")
 
@@ -209,53 +212,63 @@ class Ovus(ThreeD_object):
         if any(
             [im(solution[0]) != 0 or im(solution[1]) != 0 for solution in solutions]
         ):
-            solutions = (re(solutions[0][0]), re(solutions[0][1]))
+            solutions = [(re(solutions[0][0]), re(solutions[0][1]))]
+
+        solutions = [
+            (float(N(solution[0])), float(N(solution[1]))) for solution in solutions
+        ]
 
         return solutions
 
-    def get_ABCD(self):
-        self.ctr1 = (self.base_point[0], self.base_point[1])
-        self.ctr2 = (self.base_point[0], self.base_point[1] + self.bottom_radius)
-        join_curve_centers = self.get_intersection(
-            ctr1=self.ctr2,
+    def get_intervals(self):
+        self.bottom_center = (self.base_point[0], self.base_point[1])
+        self.top_center = (self.base_point[0], self.base_point[1] + self.bottom_radius)
+        self.join_curve_centers = self.get_intersection(
+            ctr1=self.top_center,
             r1=self.bottom_radius,
-            ctr2=self.ctr1,
+            ctr2=self.bottom_center,
             r2=self.top_radius,
         )
 
-        # TODO: Maybe check len(join_curve_centers) == 2
         A = self.get_intersection(
-            ctr1=join_curve_centers[1],
+            ctr1=self.join_curve_centers[1],
             r1=self.bottom_radius + self.top_radius,
-            ctr2=self.ctr1,
+            ctr2=self.bottom_center,
             r2=self.bottom_radius,
-        )
+        )[0]
         B = self.get_intersection(
-            ctr1=join_curve_centers[1],
+            ctr1=self.join_curve_centers[1],
             r1=self.bottom_radius + self.top_radius,
-            ctr2=self.ctr2,
+            ctr2=self.top_center,
             r2=self.top_radius,
-        )
-        C = self.get_intersection(
-            ctr1=join_curve_centers[0],
-            r1=self.bottom_radius + self.top_radius,
-            ctr2=self.ctr2,
-            r2=self.top_radius,
-        )
-        D = self.get_intersection(
-            ctr1=join_curve_centers[0],
-            r1=self.bottom_radius + self.top_radius,
-            ctr2=self.ctr1,
-            r2=self.bottom_radius,
-        )
+        )[0]
+        # C = self.get_intersection(
+        #     ctr1=join_curve_centers[0],
+        #     r1=self.bottom_radius + self.top_radius,
+        #     ctr2=self.top_center,
+        #     r2=self.top_radius,
+        # )[0]
+        # D = self.get_intersection(
+        #     ctr1=join_curve_centers[0],
+        #     r1=self.bottom_radius + self.top_radius,
+        #     ctr2=self.bottom_center,
+        #     r2=self.bottom_radius,
+        # )[0]
 
-        return A, B, C, D
+        return A[1], B[1]
 
     def get_radius(self, initial_radius: float, relative_height: float):
         return sqrt(initial_radius**2 - relative_height**2)
 
-    def lerp(self, alpha, A, B):
-        return A + (B - A) * alpha
+    def get_ovus_radius(self, y: float):
+        if y < self.bottom_interval:
+            return self.get_radius(self.bottom_radius, y - self.bottom_center[1])
+        elif y < self.top_interval:
+            return self.get_radius(
+                self.bottom_radius + self.top_radius, y - self.join_curve_centers[1][1]
+            ) - (self.join_curve_centers[1][0] - self.base_point[0])
+        else:
+            return self.get_radius(self.top_radius, y - self.top_center[1])
 
     def create_wireframe(self):
         self.tx = []
@@ -264,134 +277,130 @@ class Ovus(ThreeD_object):
         self.bx = []
         self.by = []
         self.bz = []
-        dsub = 2 * pi / SUBDIV
+        circ_sub = 2 * pi / CIRCULAR_SUBDIV
 
-        for i in range(SUBDIV):
+        for i in range(CIRCULAR_SUBDIV):
             self.tx += [
                 self.base_point[0]
-                + self.get_radius(self.top_radius, self.B[1] - self.ctr2[1])
-                * cos(dsub * i)
+                + self.get_radius(
+                    self.top_radius, self.top_interval - self.top_center[1]
+                )
+                * cos(circ_sub * i)
             ]
-            self.ty += [-self.B[1]]
+            self.ty += [-self.top_interval]
             self.tz += [
                 self.base_point[2]
-                + self.get_radius(self.top_radius, self.B[1] - self.ctr2[1])
-                * sin(dsub * i)
+                + self.get_radius(
+                    self.top_radius, self.top_interval - self.top_center[1]
+                )
+                * sin(circ_sub * i)
             ]
 
             self.bx += [
                 self.base_point[0]
-                + self.get_radius(self.bottom_radius, self.A[1] - self.ctr1[1])
-                * cos(dsub * i)
+                + self.get_radius(
+                    self.bottom_radius, self.bottom_interval - self.bottom_center[1]
+                )
+                * cos(circ_sub * i)
             ]
-            self.by += [-self.A[1]]
+            self.by += [-self.bottom_interval]
             self.bz += [
                 self.base_point[2]
-                + self.get_radius(self.bottom_radius, self.A[1] - self.ctr1[1])
-                * sin(dsub * i)
+                + self.get_radius(
+                    self.bottom_radius, self.bottom_interval - self.bottom_center[1]
+                )
+                * sin(circ_sub * i)
             ]
 
         self.bpx = self.base_point[0]
-        self.bpy = -(self.base_point[1] - self.bottom_radius)
+        self.bpy = self.base_point[1] - self.bottom_radius
         self.bpz = self.base_point[2]
         self.tpx = self.base_point[0]
-        self.tpy = -(self.base_point[1] + self.bottom_radius + self.top_radius)
+        self.tpy = self.base_point[1] + self.bottom_radius + self.top_radius
         self.tpz = self.base_point[2]
+
+        ic(self.bpy, self.tpy)
+
+        self.vertical_floors = []
+        for i in range(1, VERTICAL_SUBDIV):
+            y = (abs(self.tpy - self.bpy) / VERTICAL_SUBDIV) * i + self.bpy
+            radius = self.get_ovus_radius(y)
+
+            self.vertical_floors.append(
+                [
+                    {
+                        "x": self.base_point[0] + radius * cos(circ_sub * j),
+                        "y": -y,
+                        "z": self.base_point[2] + radius * sin(circ_sub * j),
+                    }
+                    for j in range(CIRCULAR_SUBDIV)
+                ]
+            )
+
+        self.bpy, self.tpy = -self.bpy, -self.tpy
 
     def to_svg(self, view):
         match view:
             case "xy":
                 # Top circle (XY-plane)
                 svg = f"M{self.tx[0]:g},{self.ty[0]:g} "
-                for s in range(1, SUBDIV):
+                for s in range(1, CIRCULAR_SUBDIV):
                     svg += f"L{self.tx[s]:g},{self.ty[s]:g} "
                 svg += "Z "
 
                 # Bottom circle (XY-plane)
                 svg += f"M{self.bx[0]:g},{self.by[0]:g} "
-                for s in range(1, SUBDIV):
+                for s in range(1, CIRCULAR_SUBDIV):
                     svg += f"L{self.bx[s]:g},{self.by[s]:g} "
                 svg += "Z "
 
+                # TODO: Add the bottom points and top points to the vertical_floors list and sort them by y value
                 # Meridian lines
-                for s in range(SUBDIV):
+                for j in range(CIRCULAR_SUBDIV):
                     svg += f"M{self.bpx:g},{self.bpy:g} "
-                    if self.tx[s] > self.base_point[0]:
-                        svg += (
-                            f"A{self.bottom_radius:g},{self.bottom_radius:g} 0 0,0 {self.bx[s]:g},{self.by[s]:g} "
-                            f"A{self.top_radius+self.bottom_radius:g},{self.top_radius+self.bottom_radius:g} 0 0,0 {self.tx[s]:g},{self.ty[s]:g} "
-                            f"A{self.top_radius:g},{self.top_radius:g} 0 0,0 {self.tpx:g},{self.tpy:g} "
-                        )
-                    elif self.tx[s] < self.base_point[0]:
-                        svg += (
-                            f"A{self.bottom_radius:g},{self.bottom_radius:g} 0 0,1 {self.bx[s]:g},{self.by[s]:g} "
-                            f"A{self.top_radius+self.bottom_radius:g},{self.top_radius+self.bottom_radius:g} 0 0,1 {self.tx[s]:g},{self.ty[s]:g} "
-                            f"A{self.top_radius:g},{self.top_radius:g} 0 0,1 {self.tpx:g},{self.tpy:g} "
-                        )
-                    else:
-                        svg += (
-                            f"L{self.bx[s]:g},{self.by[s]:g} "
-                            f"L{self.tx[s]:g},{self.ty[s]:g} "
-                            f"L{self.tpx:g},{self.tpy:g} "
-                        )
+                    for s in range(VERTICAL_SUBDIV - 1):
+                        svg += f"L{self.vertical_floors[s][j]['x']:g},{self.vertical_floors[s][j]['y']:g} "
+                    svg += f"L{self.tpx:g},{self.tpy:g} "
 
             case "zy":
                 # Top circle (ZY-plane)
                 svg = f"M{self.tz[0]:g},{self.ty[0]:g} "
-                for s in range(1, SUBDIV):
+                for s in range(1, CIRCULAR_SUBDIV):
                     svg += f"L{self.tz[s]:g},{self.ty[s]:g} "
                 svg += "Z "
 
                 # Bottom circle (ZY-plane)
                 svg += f"M{self.bz[0]:g},{self.by[0]:g} "
-                for s in range(1, SUBDIV):
+                for s in range(1, CIRCULAR_SUBDIV):
                     svg += f"L{self.bz[s]:g},{self.by[s]:g} "
                 svg += "Z "
 
                 # Meridian lines
-                for s in range(SUBDIV):
+                for j in range(CIRCULAR_SUBDIV):
                     svg += f"M{self.bpz:g},{self.bpy:g} "
-
-                    if self.tz[s] > self.base_point[2]:
-                        svg += (
-                            f"A{self.bottom_radius:g},{self.bottom_radius:g} 0 0,0 {self.bz[s]:g},{self.by[s]:g} "
-                            f"A{self.top_radius+self.bottom_radius:g},{self.top_radius+self.bottom_radius:g} 0 0,0 {self.tz[s]:g},{self.ty[s]:g} "
-                            f"A{self.top_radius:g},{self.top_radius:g} 0 0,0 {self.tpz:g},{self.tpy:g} "
-                        )
-                    elif self.tz[s] < self.base_point[2]:
-                        svg += (
-                            f"A{self.bottom_radius:g},{self.bottom_radius:g} 0 0,1 {self.bz[s]:g},{self.by[s]:g} "
-                            f"A{self.top_radius+self.bottom_radius:g},{self.top_radius+self.bottom_radius:g} 0 0,1 {self.tz[s]:g},{self.ty[s]:g} "
-                            f"A{self.top_radius:g},{self.top_radius:g} 0 0,1 {self.tpz:g},{self.tpy:g} "
-                        )
-                    else:
-                        svg += (
-                            f"L{self.bz[s]:g},{self.by[s]:g} "
-                            f"L{self.tz[s]:g},{self.ty[s]:g} "
-                            f"L{self.tpz:g},{self.tpy:g} "
-                        )
+                    for s in range(VERTICAL_SUBDIV - 1):
+                        svg += f"L{self.vertical_floors[s][j]['z']:g},{self.vertical_floors[s][j]['y']:g} "
+                    svg += f"L{self.tpz:g},{self.tpy:g} "
 
             case "zx":
                 # Top circle (ZX-plane)
                 svg = f"M{self.tz[0]:g},{self.tx[0]:g} "
-                for s in range(1, SUBDIV):
+                for s in range(1, CIRCULAR_SUBDIV):
                     svg += f"L{self.tz[s]:g},{self.tx[s]:g} "
                 svg += "Z "
 
                 # Bottom circle (ZX-plane)
                 svg += f"M{self.bz[0]:g},{self.bx[0]:g} "
-                for s in range(1, SUBDIV):
+                for s in range(1, CIRCULAR_SUBDIV):
                     svg += f"L{self.bz[s]:g},{self.bx[s]:g} "
                 svg += "Z "
 
                 # Meridian lines
-                for s in range(SUBDIV):
-                    svg += (
-                        f"M{self.bpz:g},{self.bpx:g} "
-                        f"L{self.bz[s]:g},{self.bx[s]:g} "
-                        f"L{self.tz[s]:g},{self.tx[s]:g} "
-                        f"L{self.tpz:g},{self.tpx:g} "
-                    )
+                for j in range(CIRCULAR_SUBDIV):
+                    svg += f"M{self.bpz:g},{self.bpx:g} "
+                    for s in range(VERTICAL_SUBDIV - 1):
+                        svg += f"L{self.vertical_floors[s][j]['z']:g},{self.vertical_floors[s][j]['x']:g} "
+                    svg += f"L{self.tpz:g},{self.tpx:g} "
 
             case _:
                 raise ValueError("Invalid view")
