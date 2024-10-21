@@ -2,8 +2,10 @@ import pyparsing as pp
 
 
 def make_parser():
+    # Define comments to be ignored
     include_line = pp.Suppress(pp.LineStart() + "#" + pp.rest_of_line)
 
+    # Define number parsing
     sign = pp.Optional(pp.oneOf("+ -"))
 
     uinteger = pp.Word("123456789", pp.nums) ^ "0"
@@ -13,75 +15,113 @@ def make_parser():
     ufloat = pp.Combine(uinteger + pp.Optional("." + uinteger) + pp.Optional(expon))
     sfloat = pp.Combine(sinteger + pp.Optional("." + uinteger) + pp.Optional(expon))
 
+    # Set parse actions to convert strings to appropriate types
     uinteger.set_parse_action(lambda t: int(t[0]))
     sinteger.set_parse_action(lambda t: int(t[0]))
     ufloat.set_parse_action(lambda t: float(t[0]))
     sfloat.set_parse_action(lambda t: float(t[0]))
 
+    # Define a 3D vector
     vector3 = pp.Group(
         pp.Suppress("<")
-        + sfloat
+        + sfloat("x")
         + pp.Suppress(",")
-        + sfloat
+        + sfloat("y")
         + pp.Suppress(",")
-        + sfloat
+        + sfloat("z")
         + pp.Suppress(">")
     )
-    rgb_vector3 = pp.Keyword("rgb") + vector3
 
+    # Define RGB vector
+    rgb_vector3 = pp.Keyword("rgb") + vector3("color")
+
+    # Define light_source
     light = pp.Group(
         pp.Keyword("light_source")
-        + "{"
-        + vector3
-        + ","
+        + pp.Suppress("{")
+        + vector3("position")
+        + pp.Suppress(",")
         + pp.Keyword("color")
         + rgb_vector3
-        + "}"
+        + pp.Suppress("}")
     )
 
-    camera = (
+    # Define camera
+    camera = pp.Group(
         pp.Keyword("camera")
-        + "{"
+        + pp.Suppress("{")
         + pp.Keyword("location")
-        + vector3
+        + vector3("location")
         + pp.Keyword("look_at")
-        + vector3
+        + vector3("look_at")
         + pp.Keyword("up")
-        + vector3
-        + "}"
+        + vector3("up")
+        + pp.Suppress("}")
     )
 
+    # Define pigment (optional)
     pigment = pp.Optional(
-        pp.Keyword("pigment") + "{" + pp.Keyword("color") + rgb_vector3 + "}"
+        pp.Keyword("pigment")
+        + pp.Suppress("{")
+        + pp.Keyword("color")
+        + rgb_vector3
+        + pp.Suppress("}")
     )
+
+    # Define object modifiers
     object_modifiers = pigment
 
-    obj = (
-        pp.MatchFirst(pp.Keyword(x) for x in ["ovus"])
-        + "{"
-        + ufloat
+    # Define object (e.g., ovus)
+    obj = pp.Group(
+        pp.MatchFirst(pp.Keyword(x) for x in ["ovus"])("type")
+        + pp.Suppress("{")
+        + ufloat("bottom_radius")
         + pp.Suppress(",")
-        + ufloat
-        + object_modifiers
-        + "}"
+        + ufloat("top_radius")
+        + pp.Optional(object_modifiers)
+        + pp.Suppress("}")
     )
 
-    lights = pp.OneOrMore(light)
-    cameras = pp.OneOrMore(camera)
-    objects = pp.OneOrMore(obj)
+    # Define multiple lights, cameras, and objects with result names
+    lights = pp.OneOrMore(light).setResultsName("light_sources")
+    cameras = pp.OneOrMore(camera).setResultsName("cameras")
+    objects = pp.OneOrMore(obj).setResultsName("objects")
 
-    parser = include_line + lights + cameras + objects
+    # Define the overall parser structure
+    parser = pp.ZeroOrMore(include_line) + lights + cameras + objects
+
+    # Convert the results to a dictionary
+    parser = pp.Dict(parser)
+
     return parser
 
 
+def parse(filename):
+    parser = make_parser()
+
+    with open(filename, "r", encoding="utf-8") as f:
+        file_contents = f.read()
+
+    res = parser.parse_string(file_contents, parse_all=True)
+    result_dict = res.as_dict()
+
+    result = {
+        "light_sources": result_dict.get("light_sources", []),
+        "cameras": result_dict.get("cameras", []),
+        "objects": result_dict.get("objects", []),
+    }
+
+    return result
+
+
 def main(args):
-    p = make_parser()
+    import sys
+    import json
 
-    with open(args[1], "r", encoding="utf-8") as f:
-        s = f.read()
+    result = parse(args[1])
 
-    res = p.parse_string(s)
-    print(res)
+    print(json.dumps(result, indent=4))
+
     return 0
 
 
