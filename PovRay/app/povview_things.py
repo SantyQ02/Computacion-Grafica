@@ -5,12 +5,14 @@ import gi
 gi.require_version("Gtk", "3.0")
 gi.require_version("GooCanvas", "3.0")
 from gi.repository import Gtk, GooCanvas
+from sympy import symbols, Eq, solve, re, im, N
 
 from math import cos, sin, pi, sqrt
 from icecream import ic
 
-CIRCULAR_SUBDIV = 20
-VERTICAL_SUBDIV = 20
+CIRCULAR_SUBDIV = 100
+VERTICAL_SUBDIV = 100
+SQUARED = False
 
 
 class ThreeD_object:
@@ -198,8 +200,6 @@ class Ovus(ThreeD_object):
     def get_intersection(
         self, *, ctr1: tuple[float], r1: float, ctr2: tuple[float], r2: float
     ):
-        from sympy import symbols, Eq, solve, re, im, N
-
         x, y = symbols("x y")
 
         x1, y1, r1 = ctr1[0], ctr1[1], r1
@@ -242,18 +242,6 @@ class Ovus(ThreeD_object):
             ctr2=self.top_center,
             r2=self.top_radius,
         )[0]
-        # C = self.get_intersection(
-        #     ctr1=join_curve_centers[0],
-        #     r1=self.bottom_radius + self.top_radius,
-        #     ctr2=self.top_center,
-        #     r2=self.top_radius,
-        # )[0]
-        # D = self.get_intersection(
-        #     ctr1=join_curve_centers[0],
-        #     r1=self.bottom_radius + self.top_radius,
-        #     ctr2=self.bottom_center,
-        #     r2=self.bottom_radius,
-        # )[0]
 
         return A[1], B[1]
 
@@ -271,46 +259,7 @@ class Ovus(ThreeD_object):
             return self.get_radius(self.top_radius, y - self.top_center[1])
 
     def create_wireframe(self):
-        self.tx = []
-        self.ty = []
-        self.tz = []
-        self.bx = []
-        self.by = []
-        self.bz = []
         circ_sub = 2 * pi / CIRCULAR_SUBDIV
-
-        for i in range(CIRCULAR_SUBDIV):
-            self.tx += [
-                self.base_point[0]
-                + self.get_radius(
-                    self.top_radius, self.top_interval - self.top_center[1]
-                )
-                * cos(circ_sub * i)
-            ]
-            self.ty += [-self.top_interval]
-            self.tz += [
-                self.base_point[2]
-                + self.get_radius(
-                    self.top_radius, self.top_interval - self.top_center[1]
-                )
-                * sin(circ_sub * i)
-            ]
-
-            self.bx += [
-                self.base_point[0]
-                + self.get_radius(
-                    self.bottom_radius, self.bottom_interval - self.bottom_center[1]
-                )
-                * cos(circ_sub * i)
-            ]
-            self.by += [-self.bottom_interval]
-            self.bz += [
-                self.base_point[2]
-                + self.get_radius(
-                    self.bottom_radius, self.bottom_interval - self.bottom_center[1]
-                )
-                * sin(circ_sub * i)
-            ]
 
         self.bpx = self.base_point[0]
         self.bpy = self.base_point[1] - self.bottom_radius
@@ -322,9 +271,13 @@ class Ovus(ThreeD_object):
         ic(self.bpy, self.tpy)
 
         self.vertical_floors = []
+        max_radius = 0
         for i in range(1, VERTICAL_SUBDIV):
             y = (abs(self.tpy - self.bpy) / VERTICAL_SUBDIV) * i + self.bpy
             radius = self.get_ovus_radius(y)
+            if radius > max_radius:
+                max_radius = radius
+                self.max_radius_floor = i - 1
 
             self.vertical_floors.append(
                 [
@@ -340,21 +293,15 @@ class Ovus(ThreeD_object):
         self.bpy, self.tpy = -self.bpy, -self.tpy
 
     def to_svg(self, view):
+        svg = ""
         match view:
             case "xy":
-                # Top circle (XY-plane)
-                svg = f"M{self.tx[0]:g},{self.ty[0]:g} "
-                for s in range(1, CIRCULAR_SUBDIV):
-                    svg += f"L{self.tx[s]:g},{self.ty[s]:g} "
+                # Max radius
+                svg += f"M{self.vertical_floors[self.max_radius_floor][0]['x']:g},{self.vertical_floors[self.max_radius_floor][0]['y']:g} Z"
+                for j in range(1, CIRCULAR_SUBDIV):
+                    svg += f"L{self.vertical_floors[self.max_radius_floor][j]['x']:g},{self.vertical_floors[self.max_radius_floor][j]['y']:g} "
                 svg += "Z "
 
-                # Bottom circle (XY-plane)
-                svg += f"M{self.bx[0]:g},{self.by[0]:g} "
-                for s in range(1, CIRCULAR_SUBDIV):
-                    svg += f"L{self.bx[s]:g},{self.by[s]:g} "
-                svg += "Z "
-
-                # TODO: Add the bottom points and top points to the vertical_floors list and sort them by y value
                 # Meridian lines
                 for j in range(CIRCULAR_SUBDIV):
                     svg += f"M{self.bpx:g},{self.bpy:g} "
@@ -362,17 +309,19 @@ class Ovus(ThreeD_object):
                         svg += f"L{self.vertical_floors[s][j]['x']:g},{self.vertical_floors[s][j]['y']:g} "
                     svg += f"L{self.tpx:g},{self.tpy:g} "
 
-            case "zy":
-                # Top circle (ZY-plane)
-                svg = f"M{self.tz[0]:g},{self.ty[0]:g} "
-                for s in range(1, CIRCULAR_SUBDIV):
-                    svg += f"L{self.tz[s]:g},{self.ty[s]:g} "
-                svg += "Z "
+                # Ecuator lines
+                if SQUARED:
+                    for s in range(VERTICAL_SUBDIV - 1):
+                        svg += f"M{self.vertical_floors[s][0]['x']:g},{self.vertical_floors[s][0]['y']:g} "
+                        for j in range(1, CIRCULAR_SUBDIV):
+                            svg += f"L{self.vertical_floors[s][j]['x']:g},{self.vertical_floors[s][j]['y']:g} "
+                        svg += "Z"
 
-                # Bottom circle (ZY-plane)
-                svg += f"M{self.bz[0]:g},{self.by[0]:g} "
-                for s in range(1, CIRCULAR_SUBDIV):
-                    svg += f"L{self.bz[s]:g},{self.by[s]:g} "
+            case "zy":
+                # Max radius
+                svg += f"M{self.vertical_floors[self.max_radius_floor][0]['z']:g},{self.vertical_floors[self.max_radius_floor][0]['y']:g} Z"
+                for j in range(1, CIRCULAR_SUBDIV):
+                    svg += f"L{self.vertical_floors[self.max_radius_floor][j]['z']:g},{self.vertical_floors[self.max_radius_floor][j]['y']:g} "
                 svg += "Z "
 
                 # Meridian lines
@@ -382,17 +331,19 @@ class Ovus(ThreeD_object):
                         svg += f"L{self.vertical_floors[s][j]['z']:g},{self.vertical_floors[s][j]['y']:g} "
                     svg += f"L{self.tpz:g},{self.tpy:g} "
 
-            case "zx":
-                # Top circle (ZX-plane)
-                svg = f"M{self.tz[0]:g},{self.tx[0]:g} "
-                for s in range(1, CIRCULAR_SUBDIV):
-                    svg += f"L{self.tz[s]:g},{self.tx[s]:g} "
-                svg += "Z "
+                # Ecuator lines
+                if SQUARED:
+                    for s in range(VERTICAL_SUBDIV - 1):
+                        svg += f"M{self.vertical_floors[s][0]['z']:g},{self.vertical_floors[s][0]['y']:g} "
+                        for j in range(1, CIRCULAR_SUBDIV):
+                            svg += f"L{self.vertical_floors[s][j]['z']:g},{self.vertical_floors[s][j]['y']:g} "
+                        svg += "Z"
 
-                # Bottom circle (ZX-plane)
-                svg += f"M{self.bz[0]:g},{self.bx[0]:g} "
-                for s in range(1, CIRCULAR_SUBDIV):
-                    svg += f"L{self.bz[s]:g},{self.bx[s]:g} "
+            case "zx":
+                # Max radius
+                svg += f"M{self.vertical_floors[self.max_radius_floor][0]['z']:g},{self.vertical_floors[self.max_radius_floor][0]['x']:g} Z"
+                for j in range(1, CIRCULAR_SUBDIV):
+                    svg += f"L{self.vertical_floors[self.max_radius_floor][j]['z']:g},{self.vertical_floors[self.max_radius_floor][j]['x']:g} "
                 svg += "Z "
 
                 # Meridian lines
@@ -401,6 +352,14 @@ class Ovus(ThreeD_object):
                     for s in range(VERTICAL_SUBDIV - 1):
                         svg += f"L{self.vertical_floors[s][j]['z']:g},{self.vertical_floors[s][j]['x']:g} "
                     svg += f"L{self.tpz:g},{self.tpx:g} "
+
+                # Ecuator lines
+                if SQUARED:
+                    for s in range(VERTICAL_SUBDIV - 1):
+                        svg += f"M{self.vertical_floors[s][0]['z']:g},{self.vertical_floors[s][0]['x']:g} "
+                        for j in range(1, CIRCULAR_SUBDIV):
+                            svg += f"L{self.vertical_floors[s][j]['z']:g},{self.vertical_floors[s][j]['x']:g} "
+                        svg += "Z"
 
             case _:
                 raise ValueError("Invalid view")
