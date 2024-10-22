@@ -100,21 +100,38 @@ class MainWindow(Gtk.Window):
 
         mm = self.make_main_menu()
 
+        # Existing Labels and Entries
         label_circular = Gtk.Label(label="CIRCULAR_SUBDIV")
         label_circular.set_xalign(0)
-        self.entry_circular = Gtk.Entry(text=100)
+        self.entry_circular = Gtk.Entry(text="100")
         self.entry_circular.set_hexpand(True)
 
         label_vertical = Gtk.Label(label="VERTICAL_SUBDIV")
         label_vertical.set_xalign(0)
-        self.entry_vertical = Gtk.Entry(text=100)
+        self.entry_vertical = Gtk.Entry(text="100")
         self.entry_vertical.set_hexpand(True)
 
         self.checkbox_squared = Gtk.CheckButton(label="SQUARED")
 
-        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
-        hbox.set_homogeneous(False)
+        # Yaw
+        label_yaw = Gtk.Label(label="YAW")
+        label_yaw.set_xalign(0)
+        self.entry_yaw = Gtk.Entry(text="0")
+        self.entry_yaw.set_hexpand(True)
 
+        # Pitch
+        label_pitch = Gtk.Label(label="PITCH")
+        label_pitch.set_xalign(0)
+        self.entry_pitch = Gtk.Entry(text="0")
+        self.entry_pitch.set_hexpand(True)
+
+        # Roll
+        label_roll = Gtk.Label(label="ROLL")
+        label_roll.set_xalign(0)
+        self.entry_roll = Gtk.Entry(text="0")
+        self.entry_roll.set_hexpand(True)
+
+        # Organize existing entries into vertical boxes
         vbox_circular = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
         vbox_circular.pack_start(label_circular, False, False, 0)
         vbox_circular.pack_start(self.entry_circular, False, False, 0)
@@ -123,8 +140,28 @@ class MainWindow(Gtk.Window):
         vbox_vertical.pack_start(label_vertical, False, False, 0)
         vbox_vertical.pack_start(self.entry_vertical, False, False, 0)
 
+        # Organize new entries into vertical boxes
+        vbox_yaw = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        vbox_yaw.pack_start(label_yaw, False, False, 0)
+        vbox_yaw.pack_start(self.entry_yaw, False, False, 0)
+
+        vbox_pitch = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        vbox_pitch.pack_start(label_pitch, False, False, 0)
+        vbox_pitch.pack_start(self.entry_pitch, False, False, 0)
+
+        vbox_roll = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        vbox_roll.pack_start(label_roll, False, False, 0)
+        vbox_roll.pack_start(self.entry_roll, False, False, 0)
+
+        # Create the main horizontal box and pack all vertical boxes
+        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
+        hbox.set_homogeneous(False)
+
         hbox.pack_start(vbox_circular, True, True, 0)
         hbox.pack_start(vbox_vertical, True, True, 0)
+        hbox.pack_start(vbox_yaw, True, True, 0)
+        hbox.pack_start(vbox_pitch, True, True, 0)
+        hbox.pack_start(vbox_roll, True, True, 0)
         hbox.pack_start(self.checkbox_squared, False, False, 0)
 
         self.views = Views()
@@ -161,6 +198,11 @@ class MainWindow(Gtk.Window):
         return {
             "CIRCULAR_SUBDIV": int(self.entry_circular.get_text()),
             "VERTICAL_SUBDIV": int(self.entry_vertical.get_text()),
+            "ROTATION_VECTOR": [
+                float(self.entry_yaw.get_text()),
+                float(self.entry_pitch.get_text()),
+                float(self.entry_roll.get_text()),
+            ],
             "SQUARED": self.checkbox_squared.get_active(),
         }
 
