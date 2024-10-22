@@ -5,7 +5,7 @@ import gi
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("GooCanvas", "3.0")
-from gi.repository import Gtk, GooCanvas
+from gi.repository import Gtk, Gdk, GooCanvas
 
 from main_menu import Main_menu
 from povview_things import Vec3, Cone, Ovus
@@ -100,6 +100,10 @@ class MainWindow(Gtk.Window):
 
         mm = self.make_main_menu()
 
+        self.updating_yaw = False
+        self.updating_pitch = False
+        self.updating_roll = False
+
         # Existing Labels and Entries
         label_circular = Gtk.Label(label="CIRCULAR_SUBDIV")
         label_circular.set_xalign(0)
@@ -122,6 +126,7 @@ class MainWindow(Gtk.Window):
         self.entry_yaw = Gtk.Entry(text="0")
         self.entry_yaw.set_hexpand(True)
         self.entry_yaw.connect("changed", self.on_params_changed)
+        self.entry_yaw.connect("focus-out-event", self.on_entry_yaw_focus_out)
 
         # Create Scale for YAW
         adjustment_yaw = Gtk.Adjustment(
@@ -140,6 +145,7 @@ class MainWindow(Gtk.Window):
         self.entry_pitch = Gtk.Entry(text="0")
         self.entry_pitch.set_hexpand(True)
         self.entry_pitch.connect("changed", self.on_params_changed)
+        self.entry_pitch.connect("focus-out-event", self.on_entry_pitch_focus_out)
 
         # Create Scale for PITCH
         adjustment_pitch = Gtk.Adjustment(
@@ -158,6 +164,7 @@ class MainWindow(Gtk.Window):
         self.entry_roll = Gtk.Entry(text="0")
         self.entry_roll.set_hexpand(True)
         self.entry_roll.connect("changed", self.on_params_changed)
+        self.entry_roll.connect("focus-out-event", self.on_entry_roll_focus_out)
 
         # Create Scale for ROLL
         adjustment_roll = Gtk.Adjustment(
@@ -231,6 +238,79 @@ class MainWindow(Gtk.Window):
         self.views.clear_views()
         self.views.unique_obj.set_params(**self.get_params())
         self.views.draw()
+
+    def on_entry_yaw_focus_out(self, entry, event):
+        print(entry.get_text())
+        if self.updating_yaw:
+            return
+        self.updating_yaw = True
+        text = entry.get_text()
+        try:
+            value = int(text)
+            entry.override_background_color(Gtk.StateFlags.NORMAL, None)
+        except ValueError:
+            rgba = Gdk.RGBA(1, 0, 0, 0.3)
+            entry.override_background_color(Gtk.StateFlags.NORMAL, rgba)
+            value = int(self.scale_yaw.get_value())
+            entry.set_text(str(value))
+            self.updating_yaw = False
+            return
+
+        adjustment = self.scale_yaw.get_adjustment()
+        value = max(
+            int(adjustment.get_lower()), min(int(adjustment.get_upper()), value)
+        )
+
+        self.scale_yaw.set_value(value)
+        self.updating_yaw = False
+
+    def on_entry_pitch_focus_out(self, entry, event):
+        if self.updating_pitch:
+            return
+        self.updating_pitch = True
+        text = entry.get_text()
+        try:
+            value = int(text)
+            entry.override_background_color(Gtk.StateFlags.NORMAL, None)
+        except ValueError:
+            rgba = Gdk.RGBA(1, 0, 0, 0.3)
+            entry.override_background_color(Gtk.StateFlags.NORMAL, rgba)
+            value = int(self.scale_pitch.get_value())
+            entry.set_text(str(value))
+            self.updating_pitch = False
+            return
+
+        adjustment = self.scale_pitch.get_adjustment()
+        value = max(
+            int(adjustment.get_lower()), min(int(adjustment.get_upper()), value)
+        )
+
+        self.scale_pitch.set_value(value)
+        self.updating_pitch = False
+
+    def on_entry_roll_focus_out(self, entry, event):
+        if self.updating_roll:
+            return
+        self.updating_roll = True
+        text = entry.get_text()
+        try:
+            value = int(text)
+            entry.override_background_color(Gtk.StateFlags.NORMAL, None)
+        except ValueError:
+            rgba = Gdk.RGBA(1, 0, 0, 0.3)
+            entry.override_background_color(Gtk.StateFlags.NORMAL, rgba)
+            value = int(self.scale_roll.get_value())
+            entry.set_text(str(value))
+            self.updating_roll = False
+            return
+
+        adjustment = self.scale_roll.get_adjustment()
+        value = max(
+            int(adjustment.get_lower()), min(int(adjustment.get_upper()), value)
+        )
+
+        self.scale_roll.set_value(value)
+        self.updating_roll = False
 
     def run(self):
         Gtk.main()
