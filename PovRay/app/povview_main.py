@@ -221,6 +221,7 @@ class MainWindow(Gtk.Window):
         grid.attach(self.views, 0, 2, 2, 1)
         self.add(grid)
         self.show_all()
+        self.maximize()
 
     def on_scale_yaw_changed(self, scale):
         value = scale.get_value()
