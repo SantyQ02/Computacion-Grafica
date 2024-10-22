@@ -42,6 +42,7 @@ class Views(Gtk.Grid):
         super().__init__(row_spacing=4, column_spacing=4, margin=4)
 
         self.objs = []
+        self.unique_obj = None
 
         self.views = {}
         for x, y, lbl in [(0, 0, "xy"), (1, 0, "zy"), (0, 1, "zx")]:
@@ -54,24 +55,41 @@ class Views(Gtk.Grid):
             frame.add(canvas)
             self.views[lbl] = {"frame": frame, "canvas": canvas}
 
-    def clear(self):
+    def clear_views(self):
         for view in self.views:
             root = self.views[view]["canvas"].get_root_item()
             for i in range(root.get_n_children()):
                 root.get_child(i).remove()
 
-    def add_object(self, obj):
+    def clear_objects(self):
+        self.objs = []
+
+    def set_object(self, obj, **kwargs):
         match obj["type"]:
             case "cone":
-                c = Cone(obj["data"])
-                self.objs.append(c)
-                c.draw_on(self.views)
+                self.unique_obj = Cone(obj["data"], **kwargs)
             case "ovus":
-                o = Ovus(obj)
-                self.objs.append(o)
-                o.draw_on(self.views)
+                self.unique_obj = Ovus(obj, **kwargs)
             case _:
                 raise ValueError(f"Unknown object type: {obj['type']}")
+
+    def draw(self):
+        self.unique_obj.draw_on(self.views)
+
+    def add_object(self, obj, **kwargs):
+        match obj["type"]:
+            case "cone":
+                c = Cone(obj["data"], **kwargs)
+                self.objs.append(c)
+            case "ovus":
+                o = Ovus(obj, **kwargs)
+                self.objs.append(o)
+            case _:
+                raise ValueError(f"Unknown object type: {obj['type']}")
+
+    def draw_objects(self):
+        for obj in self.objs:
+            obj.draw_on(self.views)
 
 
 class MainWindow(Gtk.Window):
@@ -82,14 +100,38 @@ class MainWindow(Gtk.Window):
 
         mm = self.make_main_menu()
 
-        cmd_entry = Gtk.Entry(text=TEST_OVUS, hexpand=True)
-        cmd_entry.connect("activate", self.on_cmd_entry_activate)
+        label_circular = Gtk.Label(label="CIRCULAR_SUBDIV")
+        label_circular.set_xalign(0)
+        self.entry_circular = Gtk.Entry(text=100)
+        self.entry_circular.set_hexpand(True)
+
+        label_vertical = Gtk.Label(label="VERTICAL_SUBDIV")
+        label_vertical.set_xalign(0)
+        self.entry_vertical = Gtk.Entry(text=100)
+        self.entry_vertical.set_hexpand(True)
+
+        self.checkbox_squared = Gtk.CheckButton(label="SQUARED")
+
+        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
+        hbox.set_homogeneous(False)
+
+        vbox_circular = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        vbox_circular.pack_start(label_circular, False, False, 0)
+        vbox_circular.pack_start(self.entry_circular, False, False, 0)
+
+        vbox_vertical = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        vbox_vertical.pack_start(label_vertical, False, False, 0)
+        vbox_vertical.pack_start(self.entry_vertical, False, False, 0)
+
+        hbox.pack_start(vbox_circular, True, True, 0)
+        hbox.pack_start(vbox_vertical, True, True, 0)
+        hbox.pack_start(self.checkbox_squared, False, False, 0)
 
         self.views = Views()
 
         grid = Gtk.Grid(vexpand=True)
         grid.attach(mm, 0, 0, 2, 1)
-        grid.attach(cmd_entry, 0, 1, 2, 1)
+        grid.attach(hbox, 0, 1, 2, 1)
         grid.attach(self.views, 0, 2, 2, 1)
         self.add(grid)
         self.show_all()
@@ -98,12 +140,13 @@ class MainWindow(Gtk.Window):
         Gtk.main()
 
     def make_main_menu(self):
-        mm = Main_menu(["_File", "_Tests", "_Help"])
+        mm = Main_menu(["_File", "_Tests"])
         mm.add_items_to(
             "_File",
             (
                 ("Open POV file", self.on_open_pov_clicked),
                 ("Clear scene", self.on_clear_clicked),
+                ("Redraw", self.on_redraw_clicked),
                 (None, None),
                 ("_Quit", self.on_quit_clicked),
             ),
@@ -114,14 +157,36 @@ class MainWindow(Gtk.Window):
 
         return mm
 
+    def get_params(self):
+        return {
+            "CIRCULAR_SUBDIV": int(self.entry_circular.get_text()),
+            "VERTICAL_SUBDIV": int(self.entry_vertical.get_text()),
+            "SQUARED": self.checkbox_squared.get_active(),
+        }
+
     def on_add_cone_clicked(self, menuitem):
-        self.views.add_object(TEST_CONE)
+        self.views.clear_views()
+        self.views.set_object(
+            TEST_CONE,
+            **self.get_params(),
+        )
+        self.views.draw()
 
     def on_add_ovus_clicked(self, menuitem):
-        self.views.add_object(TEST_OVUS)
+        self.views.clear_views()
+        self.views.set_object(
+            TEST_OVUS,
+            **self.get_params(),
+        )
+        self.views.draw()
 
     def on_clear_clicked(self, menuitem):
-        self.views.clear()
+        self.views.clear_views()
+
+    def on_redraw_clicked(self, menuitem):
+        self.views.clear_views()
+        self.views.unique_obj.set_params(**self.get_params())
+        self.views.draw()
 
     def on_open_pov_clicked(self, menuitem):
         fc = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.OPEN)
@@ -144,17 +209,15 @@ class MainWindow(Gtk.Window):
 
         fc.destroy()
 
-        self.views.clear()
+        self.views.clear_views()
 
         # TODO: Unhardcode this on the future
         self.object = parse(self.file)["objects"][0]
-        self.views.add_object(self.object)
+        self.views.set_object(self.object, **self.get_params())
+        self.views.draw()
 
     def on_quit_clicked(self, menuitem):
         Gtk.main_quit()
-
-    def on_cmd_entry_activate(self, entry):
-        print("Command: ", entry.get_text())
 
 
 def main(args):
