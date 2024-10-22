@@ -47,13 +47,29 @@ class Views(Gtk.Grid):
         self.views = {}
         for x, y, lbl in [(0, 0, "xy"), (1, 0, "zy"), (0, 1, "zx")]:
             frame = Gtk.Frame(label=lbl, label_xalign=0.04, hexpand=True, vexpand=True)
+            frame.connect("size-allocate", self.on_frame_size_allocate)
             self.attach(frame, x, y, 1, 1)
 
             canvas = GooCanvas.Canvas(
-                automatic_bounds=True, bounds_from_origin=False, bounds_padding=10
+                automatic_bounds=False, bounds_from_origin=False, bounds_padding=10
             )
             frame.add(canvas)
             self.views[lbl] = {"frame": frame, "canvas": canvas}
+
+    def on_frame_size_allocate(self, widget, allocation):
+        self.frame_width = widget.get_allocated_width()
+        self.frame_height = widget.get_allocated_height()
+        self.center_canvases()
+
+    def center_canvases(self):
+        for view in self.views.values():
+            canvas = view["canvas"]
+            canvas.set_bounds(
+                -self.frame_width / 2,
+                -self.frame_height / 2,
+                self.frame_width,
+                self.frame_height,
+            )
 
     def clear_views(self):
         for view in self.views:
