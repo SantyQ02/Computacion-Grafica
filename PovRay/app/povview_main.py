@@ -105,31 +105,70 @@ class MainWindow(Gtk.Window):
         label_circular.set_xalign(0)
         self.entry_circular = Gtk.Entry(text="100")
         self.entry_circular.set_hexpand(True)
+        self.entry_circular.connect("changed", self.on_params_changed)
 
         label_vertical = Gtk.Label(label="VERTICAL_SUBDIV")
         label_vertical.set_xalign(0)
         self.entry_vertical = Gtk.Entry(text="100")
         self.entry_vertical.set_hexpand(True)
+        self.entry_vertical.connect("changed", self.on_params_changed)
 
         self.checkbox_squared = Gtk.CheckButton(label="SQUARED")
+        self.checkbox_squared.connect("toggled", self.on_params_changed)
 
         # Yaw
         label_yaw = Gtk.Label(label="YAW")
         label_yaw.set_xalign(0)
         self.entry_yaw = Gtk.Entry(text="0")
         self.entry_yaw.set_hexpand(True)
+        self.entry_yaw.connect("changed", self.on_params_changed)
+
+        # Create Scale for YAW
+        adjustment_yaw = Gtk.Adjustment(
+            value=0, lower=-180, upper=180, step_increment=1, page_increment=10
+        )
+        self.scale_yaw = Gtk.Scale(
+            orientation=Gtk.Orientation.HORIZONTAL, adjustment=adjustment_yaw
+        )
+        self.scale_yaw.set_digits(0)
+        self.scale_yaw.set_hexpand(True)
+        self.scale_yaw.connect("value-changed", self.on_scale_yaw_changed)
 
         # Pitch
         label_pitch = Gtk.Label(label="PITCH")
         label_pitch.set_xalign(0)
         self.entry_pitch = Gtk.Entry(text="0")
         self.entry_pitch.set_hexpand(True)
+        self.entry_pitch.connect("changed", self.on_params_changed)
+
+        # Create Scale for PITCH
+        adjustment_pitch = Gtk.Adjustment(
+            value=0, lower=-90, upper=90, step_increment=1, page_increment=10
+        )
+        self.scale_pitch = Gtk.Scale(
+            orientation=Gtk.Orientation.HORIZONTAL, adjustment=adjustment_pitch
+        )
+        self.scale_pitch.set_digits(0)
+        self.scale_pitch.set_hexpand(True)
+        self.scale_pitch.connect("value-changed", self.on_scale_pitch_changed)
 
         # Roll
         label_roll = Gtk.Label(label="ROLL")
         label_roll.set_xalign(0)
         self.entry_roll = Gtk.Entry(text="0")
         self.entry_roll.set_hexpand(True)
+        self.entry_roll.connect("changed", self.on_params_changed)
+
+        # Create Scale for ROLL
+        adjustment_roll = Gtk.Adjustment(
+            value=0, lower=-180, upper=180, step_increment=1, page_increment=10
+        )
+        self.scale_roll = Gtk.Scale(
+            orientation=Gtk.Orientation.HORIZONTAL, adjustment=adjustment_roll
+        )
+        self.scale_roll.set_digits(0)
+        self.scale_roll.set_hexpand(True)
+        self.scale_roll.connect("value-changed", self.on_scale_roll_changed)
 
         # Organize existing entries into vertical boxes
         vbox_circular = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
@@ -140,18 +179,21 @@ class MainWindow(Gtk.Window):
         vbox_vertical.pack_start(label_vertical, False, False, 0)
         vbox_vertical.pack_start(self.entry_vertical, False, False, 0)
 
-        # Organize new entries into vertical boxes
+        # Organize new entries and scales into vertical boxes
         vbox_yaw = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
         vbox_yaw.pack_start(label_yaw, False, False, 0)
         vbox_yaw.pack_start(self.entry_yaw, False, False, 0)
+        vbox_yaw.pack_start(self.scale_yaw, False, False, 0)
 
         vbox_pitch = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
         vbox_pitch.pack_start(label_pitch, False, False, 0)
         vbox_pitch.pack_start(self.entry_pitch, False, False, 0)
+        vbox_pitch.pack_start(self.scale_pitch, False, False, 0)
 
         vbox_roll = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
         vbox_roll.pack_start(label_roll, False, False, 0)
         vbox_roll.pack_start(self.entry_roll, False, False, 0)
+        vbox_roll.pack_start(self.scale_roll, False, False, 0)
 
         # Create the main horizontal box and pack all vertical boxes
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
@@ -159,9 +201,9 @@ class MainWindow(Gtk.Window):
 
         hbox.pack_start(vbox_circular, True, True, 0)
         hbox.pack_start(vbox_vertical, True, True, 0)
-        hbox.pack_start(vbox_yaw, True, True, 0)
-        hbox.pack_start(vbox_pitch, True, True, 0)
         hbox.pack_start(vbox_roll, True, True, 0)
+        hbox.pack_start(vbox_pitch, True, True, 0)
+        hbox.pack_start(vbox_yaw, True, True, 0)
         hbox.pack_start(self.checkbox_squared, False, False, 0)
 
         self.views = Views()
@@ -172,6 +214,23 @@ class MainWindow(Gtk.Window):
         grid.attach(self.views, 0, 2, 2, 1)
         self.add(grid)
         self.show_all()
+
+    def on_scale_yaw_changed(self, scale):
+        value = scale.get_value()
+        self.entry_yaw.set_text(str(int(value)))
+
+    def on_scale_pitch_changed(self, scale):
+        value = scale.get_value()
+        self.entry_pitch.set_text(str(int(value)))
+
+    def on_scale_roll_changed(self, scale):
+        value = scale.get_value()
+        self.entry_roll.set_text(str(int(value)))
+
+    def on_params_changed(self, param):
+        self.views.clear_views()
+        self.views.unique_obj.set_params(**self.get_params())
+        self.views.draw()
 
     def run(self):
         Gtk.main()
@@ -199,9 +258,9 @@ class MainWindow(Gtk.Window):
             "CIRCULAR_SUBDIV": int(self.entry_circular.get_text()),
             "VERTICAL_SUBDIV": int(self.entry_vertical.get_text()),
             "ROTATION_VECTOR": [
-                float(self.entry_yaw.get_text()),
-                float(self.entry_pitch.get_text()),
                 float(self.entry_roll.get_text()),
+                float(self.entry_pitch.get_text()),
+                float(self.entry_yaw.get_text()),
             ],
             "SQUARED": self.checkbox_squared.get_active(),
         }
