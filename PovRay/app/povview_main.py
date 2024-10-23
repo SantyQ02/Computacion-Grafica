@@ -123,7 +123,7 @@ class MainWindow(Gtk.Window):
         # Existing Labels and Entries
         label_circular = Gtk.Label(label="CIRCULAR_SUBDIV")
         label_circular.set_xalign(0)
-        self.entry_circular = Gtk.Entry(text="100")
+        self.entry_circular = Gtk.Entry(text="50")
         self.entry_circular.set_hexpand(True)
         self.entry_circular.connect("changed", self.on_params_changed)
 

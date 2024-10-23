@@ -14,7 +14,7 @@ from math import cos, sin, pi, sqrt, radians
 class ThreeD_object:
     def __init__(
         self,
-        CIRCULAR_SUBDIV=100,
+        CIRCULAR_SUBDIV=50,
         VERTICAL_SUBDIV=100,
         ROTATION_VECTOR=[0, 0, 0],
         SQUARED=False,
@@ -214,7 +214,6 @@ class Ovus(ThreeD_object):
         self.base_point = (0, 0, 0)
         self.bottom_radius = ovus_data["bottom_radius"]
         self.top_radius = ovus_data["top_radius"]
-        self.color = ovus_data["color"]
 
         self.is_sphere = not 0 < self.top_radius < 2 * self.bottom_radius
 
@@ -506,9 +505,6 @@ class Ovus(ThreeD_object):
                 parent=root,
                 data=self.to_svg(view),
                 line_width=1,
-                stroke_color="Black",
+                stroke_color="darkgrey",
                 fill_color=None,
             )
-
-
-# %%
