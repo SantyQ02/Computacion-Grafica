@@ -10,6 +10,8 @@ import numpy as np
 
 from math import cos, sin, pi, sqrt, radians
 
+LINE_COLOR = "darkgrey"
+
 
 class ThreeD_object:
     def __init__(
@@ -45,6 +47,36 @@ class ThreeD_object:
 
     def create_wireframe(self):
         pass
+
+    def apply_rotation(self, angle_vector: list[float], vector: list[float]):
+        angle_vector = [radians(angle) for angle in angle_vector]
+        x_rotation_matrix = np.array(
+            [
+                [1, 0, 0],
+                [0, cos(angle_vector[0]), -sin(angle_vector[0])],
+                [0, sin(angle_vector[0]), cos(angle_vector[0])],
+            ]
+        )
+        y_rotation_matrix = np.array(
+            [
+                [cos(angle_vector[1]), 0, sin(angle_vector[1])],
+                [0, 1, 0],
+                [-sin(angle_vector[1]), 0, cos(angle_vector[1])],
+            ]
+        )
+        z_rotation_matrix = np.array(
+            [
+                [cos(angle_vector[2]), -sin(angle_vector[2]), 0],
+                [sin(angle_vector[2]), cos(angle_vector[2]), 0],
+                [0, 0, 1],
+            ]
+        )
+        rotation_matrix = np.matmul(
+            np.matmul(x_rotation_matrix, y_rotation_matrix), z_rotation_matrix
+        )
+
+        vector = np.array(vector)
+        return np.matmul(rotation_matrix, vector)
 
 
 class Vec3:
@@ -100,7 +132,7 @@ class Cone(ThreeD_object):
         self.bc = cone_data[2]
         self.br = cone_data[3]
 
-        self.create_ovus_wireframe()
+        self.create_wireframe()
 
     def __str__(self):
         return (
@@ -111,41 +143,57 @@ class Cone(ThreeD_object):
             f" radius: {self.br:10g}\n"
         )
 
-    def create_ovus_wireframe(self):
+    def create_wireframe(self):
         self.tx = []
         self.ty = []
         self.tz = []
         self.bx = []
         self.by = []
         self.bz = []
-        circ_sub = 2 * pi / self._self._CIRCULAR_SUBDIV
+        circ_sub = 2 * pi / self._CIRCULAR_SUBDIV
 
-        for i in range(self._self._CIRCULAR_SUBDIV):
-            self.tx += [self.tc[0] + self.tr * cos(circ_sub * i)]
-            self.ty += [-self.tc[1]]
-            self.tz += [self.tc[2] + self.tr * sin(circ_sub * i)]
+        for i in range(self._CIRCULAR_SUBDIV):
+            top_points = self.apply_rotation(
+                self._ROTATION_VECTOR,
+                [
+                    self.tc[0] + self.tr * cos(circ_sub * i),
+                    -self.tc[1],
+                    self.tc[2] + self.tr * sin(circ_sub * i),
+                ],
+            )
+            self.tx += [top_points[0]]
+            self.ty += [top_points[1]]
+            self.tz += [top_points[2]]
 
-            self.bx += [self.bc[0] + self.br * cos(circ_sub * i)]
-            self.by += [-self.bc[1]]
-            self.bz += [self.bc[2] + self.br * sin(circ_sub * i)]
+            bottom_points = self.apply_rotation(
+                self._ROTATION_VECTOR,
+                [
+                    self.bc[0] + self.br * cos(circ_sub * i),
+                    -self.bc[1],
+                    self.bc[2] + self.br * sin(circ_sub * i),
+                ],
+            )
+            self.bx += [bottom_points[0]]
+            self.by += [bottom_points[1]]
+            self.bz += [bottom_points[2]]
 
     def to_svg(self, view):
         match view:
             case "xy":
                 # Top surface (XY-plane)
                 svg = f"M{self.tx[0]:g},{self.ty[0]:g} "
-                for s in range(1, self._self._CIRCULAR_SUBDIV):
+                for s in range(1, self._CIRCULAR_SUBDIV):
                     svg += f"L{self.tx[s]:g},{self.ty[s]:g} "
                 svg += "Z "
 
                 # Bottom surface (XY-plane)
                 svg += f"M{self.bx[0]:g},{self.by[0]:g} "
-                for s in range(1, self._self._CIRCULAR_SUBDIV):
+                for s in range(1, self._CIRCULAR_SUBDIV):
                     svg += f"L{self.bx[s]:g},{self.by[s]:g} "
                 svg += "Z "
 
                 # 'Vertical' spokes connecting top and bottom surfaces
-                for s in range(self._self._CIRCULAR_SUBDIV):
+                for s in range(self._CIRCULAR_SUBDIV):
                     svg += (
                         f"M{self.tx[s]:g},{self.ty[s]:g} "
                         f"L{self.bx[s]:g},{self.by[s]:g} "
@@ -203,7 +251,7 @@ class Cone(ThreeD_object):
                 parent=root,
                 data=self.to_svg(view),
                 line_width=1,
-                stroke_color="Black",
+                stroke_color=LINE_COLOR,
                 fill_color=None,
             )
 
@@ -394,36 +442,6 @@ class Ovus(ThreeD_object):
             self._ROTATION_VECTOR, self.bottom_point
         ), self.apply_rotation(self._ROTATION_VECTOR, self.top_point)
 
-    def apply_rotation(self, angle_vector: list[float], vector: list[float]):
-        angle_vector = [radians(angle) for angle in angle_vector]
-        x_rotation_matrix = np.array(
-            [
-                [1, 0, 0],
-                [0, cos(angle_vector[0]), -sin(angle_vector[0])],
-                [0, sin(angle_vector[0]), cos(angle_vector[0])],
-            ]
-        )
-        y_rotation_matrix = np.array(
-            [
-                [cos(angle_vector[1]), 0, sin(angle_vector[1])],
-                [0, 1, 0],
-                [-sin(angle_vector[1]), 0, cos(angle_vector[1])],
-            ]
-        )
-        z_rotation_matrix = np.array(
-            [
-                [cos(angle_vector[2]), -sin(angle_vector[2]), 0],
-                [sin(angle_vector[2]), cos(angle_vector[2]), 0],
-                [0, 0, 1],
-            ]
-        )
-        rotation_matrix = np.matmul(
-            np.matmul(x_rotation_matrix, y_rotation_matrix), z_rotation_matrix
-        )
-
-        vector = np.array(vector)
-        return np.matmul(rotation_matrix, vector)
-
     def to_svg(self, view):
         svg = ""
         match view:
@@ -505,6 +523,6 @@ class Ovus(ThreeD_object):
                 parent=root,
                 data=self.to_svg(view),
                 line_width=1,
-                stroke_color="darkgrey",
+                stroke_color=LINE_COLOR,
                 fill_color=None,
             )

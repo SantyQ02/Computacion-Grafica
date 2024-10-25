@@ -15,7 +15,7 @@ from povview_parser import parse
 
 TEST_CONE = {
     "type": "cone",
-    "data": [[-13.0, 12.34, -20], 11, [-13.0, -23.34, -12.23], 2],
+    "data": [[0, 0, 0], 100, [0, -150, 0], 50],
 }
 TEST_OVUS = {
     "type": "ovus",
