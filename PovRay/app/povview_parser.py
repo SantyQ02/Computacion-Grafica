@@ -142,4 +142,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+    make_parser().create_diagram("povview_parser_diagram.html")
