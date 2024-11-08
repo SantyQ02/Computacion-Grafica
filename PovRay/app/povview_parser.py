@@ -4,10 +4,12 @@ import sys
 
 
 def make_parser():
-    # Definir comentarios que serán ignorados
     include_line = pp.Suppress(pp.LineStart() + "#" + pp.rest_of_line)
 
-    # Definir el análisis de números
+    comma = pp.Suppress(",")
+    open_brace = pp.Suppress("{")
+    close_brace = pp.Suppress("}")
+
     sign = pp.Optional(pp.oneOf("+ -"))
 
     uinteger = pp.Word("123456789", pp.nums) ^ "0"
@@ -17,19 +19,17 @@ def make_parser():
     ufloat = pp.Combine(uinteger + pp.Optional("." + uinteger) + pp.Optional(expon))
     sfloat = pp.Combine(sinteger + pp.Optional("." + uinteger) + pp.Optional(expon))
 
-    # Establecer acciones de análisis para convertir cadenas a tipos apropiados
     uinteger.set_parse_action(lambda t: int(t[0]))
     sinteger.set_parse_action(lambda t: int(t[0]))
     ufloat.set_parse_action(lambda t: float(t[0]))
     sfloat.set_parse_action(lambda t: float(t[0]))
 
-    # Definir un vector 3D
     vector3 = pp.Group(
         pp.Suppress("<")
         + sfloat("x")
-        + pp.Suppress(",")
+        + comma
         + sfloat("y")
-        + pp.Suppress(",")
+        + comma
         + sfloat("z")
         + pp.Suppress(">")
     )
@@ -37,70 +37,85 @@ def make_parser():
     color_vector3 = pp.Group(
         pp.Suppress("<")
         + sfloat("r")
-        + pp.Suppress(",")
+        + comma
         + sfloat("g")
-        + pp.Suppress(",")
+        + comma
         + sfloat("b")
         + pp.Suppress(">")
     )
 
-    # Definir vector RGB
     rgb_vector3 = pp.Keyword("rgb") + color_vector3("color")
 
-    # Definir light_source
     light = pp.Group(
         pp.Keyword("light_source")
-        + pp.Suppress("{")
+        + open_brace
         + vector3("position")
-        + pp.Suppress(",")
+        + comma
         + pp.Keyword("color")
         + rgb_vector3
-        + pp.Suppress("}")
+        + close_brace
     ).setResultsName("light_sources", listAllMatches=True)
 
-    # Definir camera
     camera = pp.Group(
         pp.Keyword("camera")
-        + pp.Suppress("{")
+        + open_brace
         + pp.Keyword("location")
         + vector3("location")
         + pp.Keyword("look_at")
         + vector3("look_at")
         + pp.Keyword("up")
         + vector3("up")
-        + pp.Suppress("}")
+        + close_brace
     ).setResultsName("cameras", listAllMatches=True)
 
-    # Definir pigment (opcional)
-    pigment = pp.Optional(
+    pigment = (
         pp.Keyword("pigment")
-        + pp.Suppress("{")
+        + open_brace
         + pp.Keyword("color")
         + rgb_vector3
-        + pp.Suppress("}")
+        + close_brace
     )
 
-    # Definir modificadores de objeto
-    object_modifiers = pigment
+    modifiers_list = [pigment]
 
-    # Definir objeto (e.g., ovus)
-    obj = pp.Group(
-        pp.MatchFirst(pp.Keyword(x) for x in ["ovus"])("type")
-        + pp.Suppress("{")
+    object_modifiers = pp.ZeroOrMore(pp.Group(pp.Or(modifiers_list))).setResultsName(
+        "object_modifiers", listAllMatches=True
+    )
+
+    ovus_parser = (
+        pp.Keyword("ovus")("type")
+        + open_brace
         + ufloat("bottom_radius")
-        + pp.Suppress(",")
+        + comma
         + ufloat("top_radius")
-        + pp.Optional(object_modifiers)
-        + pp.Suppress("}")
-    ).setResultsName("objects", listAllMatches=True)
+        + object_modifiers
+        + close_brace
+    )
 
-    # Definir elemento que puede ser un light, camera o object
-    element = light | camera | obj
+    cone_parser = (
+        pp.Keyword("ovus")("type")
+        + open_brace
+        + vector3("bottom_center")
+        + comma
+        + ufloat("bottom_radius")
+        + comma
+        + vector3("top_center")
+        + comma
+        + ufloat("top_radius")
+        + object_modifiers
+        + close_brace
+    )
 
-    # Definir el parser general que permite cualquier orden de elementos y comentarios
+    object_list = [ovus_parser, cone_parser]
+
+    objects = pp.ZeroOrMore(pp.Group(pp.Or(object_list))).setResultsName(
+        "objects", listAllMatches=True
+    )
+
+    element = light | camera | objects
+
     parser = pp.ZeroOrMore(include_line | element)
 
-    # Convertir los resultados a un diccionario
     parser = pp.Dict(parser)
 
     return parser
@@ -142,4 +157,6 @@ def main(args):
 
 
 if __name__ == "__main__":
-    make_parser().create_diagram("povview_parser_diagram.html")
+    import sys
+
+    sys.exit(main(sys.argv))
