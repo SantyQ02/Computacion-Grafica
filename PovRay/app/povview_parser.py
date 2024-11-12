@@ -4,7 +4,7 @@ import sys
 
 
 def make_parser():
-    include_line = pp.Suppress(pp.LineStart() + "#" + pp.rest_of_line)
+    include_line = pp.Suppress(pp.LineStart() + "#" + pp.restOfLine)
 
     comma = pp.Suppress(",")
     open_brace = pp.Suppress("{")
@@ -14,15 +14,15 @@ def make_parser():
 
     uinteger = pp.Word("123456789", pp.nums) ^ "0"
     sinteger = pp.Combine(sign + uinteger)
-    expon = pp.one_of("e E") + sinteger
+    expon = pp.oneOf("e E") + sinteger
 
     ufloat = pp.Combine(uinteger + pp.Optional("." + uinteger) + pp.Optional(expon))
     sfloat = pp.Combine(sinteger + pp.Optional("." + uinteger) + pp.Optional(expon))
 
-    uinteger.set_parse_action(lambda t: int(t[0]))
-    sinteger.set_parse_action(lambda t: int(t[0]))
-    ufloat.set_parse_action(lambda t: float(t[0]))
-    sfloat.set_parse_action(lambda t: float(t[0]))
+    uinteger.setParseAction(lambda t: int(t[0]))
+    sinteger.setParseAction(lambda t: int(t[0]))
+    ufloat.setParseAction(lambda t: float(t[0]))
+    sfloat.setParseAction(lambda t: float(t[0]))
 
     vector3 = pp.Group(
         pp.Suppress("<")
@@ -44,14 +44,17 @@ def make_parser():
         + pp.Suppress(">")
     )
 
-    rgb_vector3 = pp.Keyword("rgb") + color_vector3("color")
+    rgb_vector3 = (
+        pp.Suppress(pp.Keyword("color"))
+        + pp.Suppress(pp.Keyword("rgb"))
+        + color_vector3
+    )
 
     light = pp.Group(
         pp.Keyword("light_source")
         + open_brace
         + vector3("position")
         + comma
-        + pp.Keyword("color")
         + rgb_vector3
         + close_brace
     ).setResultsName("light_sources", listAllMatches=True)
@@ -68,17 +71,11 @@ def make_parser():
         + close_brace
     ).setResultsName("cameras", listAllMatches=True)
 
-    pigment = (
-        pp.Keyword("pigment")
-        + open_brace
-        + pp.Keyword("color")
-        + rgb_vector3
-        + close_brace
-    )
+    pigment = pp.Keyword("pigment") + open_brace + rgb_vector3 + close_brace
 
     modifiers_list = [pigment]
 
-    object_modifiers = pp.ZeroOrMore(pp.Group(pp.Or(modifiers_list))).setResultsName(
+    object_modifiers = pp.ZeroOrMore(pp.Or(modifiers_list)).setResultsName(
         "object_modifiers", listAllMatches=True
     )
 
@@ -93,7 +90,7 @@ def make_parser():
     )
 
     cone_parser = (
-        pp.Keyword("ovus")("type")
+        pp.Keyword("cone")("type")
         + open_brace
         + vector3("bottom_center")
         + comma
@@ -108,15 +105,13 @@ def make_parser():
 
     object_list = [ovus_parser, cone_parser]
 
-    objects = pp.ZeroOrMore(pp.Group(pp.Or(object_list))).setResultsName(
+    objects = pp.Group(pp.Or(object_list)).setResultsName(
         "objects", listAllMatches=True
     )
 
     element = light | camera | objects
 
     parser = pp.ZeroOrMore(include_line | element)
-
-    parser = pp.Dict(parser)
 
     return parser
 
