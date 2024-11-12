@@ -99,6 +99,16 @@ def make_parser():
         + close_brace
     )
 
+    sphere_parser = (
+        pp.Keyword("sphere")("type")
+        + open_brace
+        + vector3("center")
+        + comma
+        + ufloat("radius")
+        + object_modifiers
+        + close_brace
+    )
+
     cone_parser = (
         pp.Keyword("cone")("type")
         + open_brace
@@ -113,7 +123,7 @@ def make_parser():
         + close_brace
     )
 
-    object_list = [ovus_parser, cone_parser]
+    object_list = [ovus_parser, cone_parser, sphere_parser]
 
     objects = pp.Group(pp.Or(object_list)).setResultsName(
         "objects", listAllMatches=True
