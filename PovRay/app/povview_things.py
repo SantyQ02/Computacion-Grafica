@@ -39,6 +39,7 @@ class ThreeD_object:
         self.edges.clear()
 
         self.create_wireframe()
+        self.apply_modifiers()
 
     def create_wireframe(self):
         return
@@ -245,9 +246,9 @@ class Ovus(ThreeD_object):
         ):
             solutions = [(re(solutions[0][0]), re(solutions[0][1]))]
 
-        solutions = [
-            (float(N(solution[0])), float(N(solution[1]))) for solution in solutions
-        ]
+        solutions = np.array(
+            [(float(N(solution[0])), float(N(solution[1]))) for solution in solutions]
+        )
 
         return solutions
 

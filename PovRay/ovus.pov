@@ -11,7 +11,5 @@ camera {
 }
 
 ovus {
-    2, 1
-    scale 50
-    scale <10,1.25,1>
+    100, 50
 }
