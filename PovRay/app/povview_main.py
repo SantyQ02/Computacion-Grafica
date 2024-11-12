@@ -20,12 +20,13 @@ TEST_CONE = {
     "top_radius": 100.0,
     "bottom_center": [0, -150, 0],
     "bottom_radius": 50.0,
+    "object_modifiers": [],
 }
 TEST_OVUS = {
     "type": "ovus",
     "bottom_radius": 100.0,
     "top_radius": 150.0,
-    "color": {"r": 1.0, "g": 0.0, "b": 0.0},
+    "object_modifiers": [],
 }
 
 COLORS = {
@@ -46,7 +47,6 @@ class Views(Gtk.Grid):
         super().__init__(row_spacing=4, column_spacing=4, margin=4)
 
         self.objs = []
-        self.unique_obj = None
 
         self.views = {}
         for x, y, lbl in [(0, 0, "xy"), (1, 0, "zy"), (0, 1, "zx")]:
@@ -78,28 +78,14 @@ class Views(Gtk.Grid):
     def clear_views(self):
         for view in self.views:
             root = self.views[view]["canvas"].get_root_item()
-            for i in range(root.get_n_children()):
+            for i in range(root.get_n_children() - 1, -1, -1):
                 root.get_child(i).remove()
-
-    def clear_objects(self):
-        self.objs = []
-
-    def set_object(self, obj, **kwargs):
-        match obj["type"]:
-            case "cone":
-                self.unique_obj = Cone(obj, **kwargs)
-            case "ovus":
-                self.unique_obj = Ovus(obj, **kwargs)
-            case _:
-                raise ValueError(f"Unknown object type: {obj['type']}")
-
-    def draw(self):
-        self.unique_obj.draw_on(self.views)
+        self.objs.clear()
 
     def add_object(self, obj, **kwargs):
         match obj["type"]:
             case "cone":
-                c = Cone(obj["data"], **kwargs)
+                c = Cone(obj, **kwargs)
                 self.objs.append(c)
             case "ovus":
                 o = Ovus(obj, **kwargs)
@@ -107,7 +93,7 @@ class Views(Gtk.Grid):
             case _:
                 raise ValueError(f"Unknown object type: {obj['type']}")
 
-    def draw_objects(self):
+    def draw(self):
         for obj in self.objs:
             obj.draw_on(self.views)
 
@@ -177,12 +163,13 @@ class MainWindow(Gtk.Window):
 
     def on_params_changed(self, param):
         self.views.clear_views()
-        self.views.unique_obj.set_params(**self.get_params())
+        for obj in self.views.objs:
+            obj.set_params(**self.get_params())
         self.views.draw()
 
     def on_add_cone_clicked(self, menuitem):
         self.views.clear_views()
-        self.views.set_object(
+        self.views.add_object(
             TEST_CONE,
             **self.get_params(),
         )
@@ -190,7 +177,7 @@ class MainWindow(Gtk.Window):
 
     def on_add_ovus_clicked(self, menuitem):
         self.views.clear_views()
-        self.views.set_object(
+        self.views.add_object(
             TEST_OVUS,
             **self.get_params(),
         )
@@ -201,7 +188,8 @@ class MainWindow(Gtk.Window):
 
     def on_redraw_clicked(self, menuitem):
         self.views.clear_views()
-        self.views.unique_obj.set_params(**self.get_params())
+        for obj in self.views.objs:
+            obj.set_params(**self.get_params())
         self.views.draw()
 
     def on_open_pov_clicked(self, menuitem):
@@ -227,9 +215,10 @@ class MainWindow(Gtk.Window):
 
         self.views.clear_views()
 
-        # TODO: Unhardcode this on the future
-        self.object = parse(self.file)["objects"][0]
-        self.views.set_object(self.object, **self.get_params())
+        parsed_file = parse(self.file)
+
+        for obj in parsed_file["objects"]:
+            self.views.add_object(obj, **self.get_params())
         self.views.draw()
 
     def on_quit_clicked(self, menuitem):
