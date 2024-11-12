@@ -65,7 +65,7 @@ class ThreeD_object:
 
         vector = np.array(vector)
         return np.matmul(rotation_matrix, vector)
-
+    
     def to_svg(self, view):
         svg = ""
         match view:
@@ -85,6 +85,17 @@ class ThreeD_object:
                 raise ValueError("Invalid view")
 
         return svg.strip()
+
+    def draw_on(self, views):
+        for view in ["xy", "zy", "zx"]:
+            root = views[view]["canvas"].get_root_item()
+            GooCanvas.CanvasPath(
+                parent=root,
+                data=self.to_svg(view),
+                line_width=1,
+                stroke_color=LINE_COLOR,
+                fill_color=None,
+            )
 
 
 class Cone(ThreeD_object):
@@ -115,49 +126,34 @@ class Cone(ThreeD_object):
         )
 
     def create_wireframe(self):
-        self.tx = []
-        self.ty = []
-        self.tz = []
-        self.bx = []
-        self.by = []
-        self.bz = []
+        # Vertexes
         circ_sub = 2 * pi / self._SUBDIV
 
         for i in range(self._SUBDIV):
-            top_points = self.apply_rotation(
-                self._ROTATION_VECTOR,
+            self.vertexes.append(
                 [
                     self.top_center[0] + self.top_radius * cos(circ_sub * i),
                     -self.top_center[1],
                     self.top_center[2] + self.top_radius * sin(circ_sub * i),
-                ],
+                ]
             )
-            self.tx += [top_points[0]]
-            self.ty += [top_points[1]]
-            self.tz += [top_points[2]]
-
-            bottom_points = self.apply_rotation(
-                self._ROTATION_VECTOR,
+            self.vertexes.append(
                 [
                     self.bottom_center[0] + self.bottom_radius * cos(circ_sub * i),
                     -self.bottom_center[1],
                     self.bottom_center[2] + self.bottom_radius * sin(circ_sub * i),
-                ],
+                ]
             )
-            self.bx += [bottom_points[0]]
-            self.by += [bottom_points[1]]
-            self.bz += [bottom_points[2]]
 
-    def draw_on(self, views):
-        for view in ["xy", "zy", "zx"]:
-            root = views[view]["canvas"].get_root_item()
-            GooCanvas.CanvasPath(
-                parent=root,
-                data=self.to_svg(view),
-                line_width=1,
-                stroke_color=LINE_COLOR,
-                fill_color=None,
-            )
+        # Edges
+        for i in range(self._SUBDIV):
+            self.edges.append((i * 2, i * 2 + 1))
+
+        for i in range(self._SUBDIV - 1):
+            self.edges.append((i * 2, i * 2 + 2))
+            self.edges.append((i * 2 + 1, i * 2 + 3))
+        self.edges.append((-1, 1))
+        self.edges.append((-2, 0))
 
 
 class Ovus(ThreeD_object):
