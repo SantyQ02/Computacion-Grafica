@@ -4,6 +4,7 @@ import gi
 
 gi.require_version("Gtk", "3.0")
 from utils.goocanvas_util import setup_goocanvas
+
 setup_goocanvas()
 from gi.repository import GooCanvas
 from sympy import symbols, Eq, solve, re, im, N
@@ -17,11 +18,16 @@ LINE_COLOR = "darkgrey"
 class ThreeD_object:
     def __init__(
         self,
+        data,
         SUBDIV=50,
     ):
         self._SUBDIV = SUBDIV
         self.vertexes = []
         self.edges = []
+        self.modifiers = data["object_modifiers"]
+
+        self.create_wireframe()
+        self.apply_modifiers()
 
     def set_SUBDIV(self, SUBDIV):
         self._SUBDIV = SUBDIV
@@ -37,7 +43,14 @@ class ThreeD_object:
     def create_wireframe(self):
         return
 
-    def apply_rotation(self, angle_vector: list[float]):
+    def handle_value(self, value):
+        return (
+            (value["x"], value["y"], value["z"])
+            if isinstance(value, dict)
+            else (value, value, value)
+        )
+
+    def apply_rotation(self, angle_vector: tuple[float]):
         angle_vector = [radians(angle) for angle in angle_vector]
         x_rotation_matrix = np.array(
             [
@@ -67,7 +80,7 @@ class ThreeD_object:
         for i, vertex in enumerate(self.vertexes):
             self.vertexes[i] = np.matmul(rotation_matrix, np.array(vertex))
 
-    def apply_translation(self, translation_vector: list[float]):
+    def apply_translation(self, translation_vector: tuple[float]):
         translation_matrix = np.array(
             [
                 [1, 0, 0, translation_vector[0]],
@@ -79,10 +92,10 @@ class ThreeD_object:
 
         for i, vertex in enumerate(self.vertexes):
             self.vertexes[i] = np.delete(
-                np.matmul(translation_matrix, np.array(vertex)), -1
+                np.matmul(translation_matrix, np.append(np.array(vertex), 1)), -1
             )
 
-    def apply_scale(self, scale_vector: list[float]):
+    def apply_scale(self, scale_vector: tuple[float]):
         scale_matrix = np.array(
             [
                 [scale_vector[0], 0, 0],
@@ -98,11 +111,13 @@ class ThreeD_object:
         for modifier in self.modifiers:
             match modifier["type"]:
                 case "translate":
-                    self.apply_translation(modifier["vector"])
+                    self.apply_translation(self.handle_value(modifier["value"]))
                 case "rotate":
-                    self.apply_rotation(modifier["vector"])
+                    self.apply_rotation(self.handle_value(modifier["value"]))
                 case "scale":
-                    self.apply_scale(modifier["vector"])
+                    self.apply_scale(self.handle_value(modifier["value"]))
+                case _:
+                    raise ValueError("Invalid modifier type")
 
     def to_svg(self, view):
         svg = ""
@@ -146,13 +161,12 @@ class Cone(ThreeD_object):
 
     # TODO: Update interface to parsed values
     def __init__(self, cone_data, **kwargs):
-        super().__init__(**kwargs)
-        self.top_center = cone_data[0]
-        self.top_radius = cone_data[1]
-        self.bottom_center = cone_data[2]
-        self.bottom_radius = cone_data[3]
+        self.top_center = cone_data["top_center"]
+        self.top_radius = cone_data["top_radius"]
+        self.bottom_center = cone_data["bottom_center"]
+        self.bottom_radius = cone_data["bottom_radius"]
 
-        self.create_wireframe()
+        super().__init__(cone_data, **kwargs)
 
     def __str__(self):
         return (
@@ -196,7 +210,6 @@ class Cone(ThreeD_object):
 
 class Ovus(ThreeD_object):
     def __init__(self, ovus_data, **kwargs):
-        super().__init__(**kwargs)
         self.base_point = (0, 0, 0)
         self.bottom_radius = ovus_data["bottom_radius"]
         self.top_radius = ovus_data["top_radius"]
@@ -206,7 +219,7 @@ class Ovus(ThreeD_object):
         if not self.is_sphere:
             self.bottom_interval, self.top_interval = self.get_intervals()
 
-        self.create_wireframe()
+        super().__init__(ovus_data, **kwargs)
 
     def __str__(self):
         return (

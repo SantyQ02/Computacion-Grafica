@@ -11,11 +11,7 @@ camera {
 }
 
 ovus {
-    100, 50
-    pigment {
-        color rgb <1, 1, 0>
-    }
-    rotate <45, 0, 0>
-    translate 1.5
-    scale 1.5
+    2, 1
+    scale 50
+    scale <10,1.25,1>
 }

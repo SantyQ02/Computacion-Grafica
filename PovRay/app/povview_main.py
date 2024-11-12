@@ -5,6 +5,7 @@ import gi
 
 gi.require_version("Gtk", "3.0")
 from utils.goocanvas_util import setup_goocanvas
+
 setup_goocanvas()
 from gi.repository import Gtk, GooCanvas
 
@@ -15,7 +16,10 @@ from povview_parser import parse
 
 TEST_CONE = {
     "type": "cone",
-    "data": [[0, 0, 0], 100, [0, -150, 0], 50],
+    "top_center": [0, 0, 0],
+    "top_radius": 100.0,
+    "bottom_center": [0, -150, 0],
+    "bottom_radius": 50.0,
 }
 TEST_OVUS = {
     "type": "ovus",
@@ -83,7 +87,7 @@ class Views(Gtk.Grid):
     def set_object(self, obj, **kwargs):
         match obj["type"]:
             case "cone":
-                self.unique_obj = Cone(obj["data"], **kwargs)
+                self.unique_obj = Cone(obj, **kwargs)
             case "ovus":
                 self.unique_obj = Ovus(obj, **kwargs)
             case _:

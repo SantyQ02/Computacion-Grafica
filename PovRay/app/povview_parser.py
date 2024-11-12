@@ -76,16 +76,14 @@ def make_parser():
     )
 
     rotation = pp.Group(
-        pp.Keyword("rotate")("type") + (vector3("rotation_vector") | sfloat("rotate_value"))
+        pp.Keyword("rotate")("type") + (vector3("value") | sfloat("value"))
     )
 
     translation = pp.Group(
-        pp.Keyword("translate")("type") + (vector3("translation_vector") | sfloat("translate_value"))
+        pp.Keyword("translate")("type") + (vector3("value") | sfloat("value"))
     )
 
-    scale = pp.Group(
-        pp.Keyword("scale")("type") + (vector3("scale_vector") | sfloat("scale_value"))
-    )
+    scale = pp.Group(pp.Keyword("scale")("type") + (vector3("value") | sfloat("value")))
 
     object_modifiers = pp.Group(
         pp.ZeroOrMore(pigment | rotation | translation | scale)
