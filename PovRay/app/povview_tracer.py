@@ -25,7 +25,6 @@
 
 import pylab as plt
 import numpy as np
-import scipy
 
 from povview_parser import make_parser
 from povview_math import Vec3, Ray, Hit, Hit_list
@@ -42,85 +41,88 @@ sphere {
 """
 
 
-def intersection(ray, obj):
-    """ Rutina de cálculo de los eventuales puntos de intersección entre un rayo
-        y un objeto (en este caso una esfera). Normalmente, la definición de
-        la rutina de intersección debería formar parte de la clases de
-        cada tipo de objeto.
+def intersection(ray: Ray, obj):
+    """Rutina de cálculo de los eventuales puntos de intersección entre un rayo
+    y un objeto (en este caso una esfera). Normalmente, la definición de
+    la rutina de intersección debería formar parte de la clases de
+    cada tipo de objeto.
     """
     loc = Vec3(obj[1])
     rad = obj[2]
 
     # Ver cg_math.pdf para explicación del cálculo
-    a = 1                                           #  R1 • R1 = 1
-    b = ray.direction * (ray.location - loc) * 2    #  2(R1 • (R0 − C)
-    c = abs(ray.location - loc)**2 - rad**2         #  ||R0 − C||^2 − r^2
+    a = 1  #  R1 • R1 = 1
+    b = ray.direction * (ray.location - loc) * 2  #  2(R1 • (R0 − C)
+    c = abs(ray.location - loc) ** 2 - rad**2  #  ||R0 − C||^2 − r^2
 
-    if b**2 < 4*c:
+    if b**2 < 4 * c:
         return []
-        
-    elif b**2 == 4*c:
-        return [Hit(obj, -b/2)]
-        
+
+    elif b**2 == 4 * c:
+        return [Hit(obj, -b / 2)]
+
     else:
-        return [Hit(obj, (-b - sqrt(b**2 - 4*c))/2),
-                Hit(obj, (-b + sqrt(b**2 - 4*c))/2)]
+        return [
+            Hit(obj, (-b - sqrt(b**2 - 4 * c)) / 2),
+            Hit(obj, (-b + sqrt(b**2 - 4 * c)) / 2),
+        ]
 
 
 def ray_generator(w, h, loc, angle):
-    """ Generador de rayos. En el caso de umplementar el tracer con múltiples
-        hilos o procesadores, esta rutina distribuye la tarea entre los
-        rasterizadores. Eso se puede hacer, ya que no hay interacción entre
-        cada rayo.
+    """Generador de rayos. En el caso de umplementar el tracer con múltiples
+    hilos o procesadores, esta rutina distribuye la tarea entre los
+    rasterizadores. Eso se puede hacer, ya que no hay interacción entre
+    cada rayo.
 
-        El generador de rayos 'entrega' a cada cliente:
-            - la ubicación de la 'cámara'
-            - la dirección del rayo
-            - el número del pixel (para poder calcular x, y)
+    El generador de rayos 'entrega' a cada cliente:
+        - la ubicación de la 'cámara'
+        - la dirección del rayo
+        - el número del pixel (para poder calcular x, y)
     """
-    width = abs(loc.z) * 2 * tan(radians(angle)/2)      # Ancho físico de la
-                                                        # 'pantalla'
-    pixel = width / w                                   # Ancho de 1 pixel
+    width = abs(loc.z) * 2 * tan(radians(angle) / 2)  # Ancho físico de la 'pantalla'
+    pixel = width / w  # Ancho de 1 pixel
 
-    for i in range(w*h):
-        x = (i % w)  - (w//2) + 0.5
-        y = (i // w) - (h//2) + 0.5
+    for i in range(w * h):
+        x = (i % w) - (w // 2) + 0.5
+        y = (i // w) - (h // 2) + 0.5
         x *= pixel
         y *= pixel
-        direction = Vec3(x - loc.x,
-                         y - loc.y,
-                         0 - loc.z)
+        direction = Vec3(x - loc.x, y - loc.y, 0 - loc.z)
 
         yield Ray(loc, direction.normalized()), i
 
 
 def graph_trace(scene):
-    """ Tracing gráfico, utilizando una image creada por la librería PIL.
-        Aunque estaremos escribiendo pixel por pixel en modo RGB, en este
-        demo el color será siempre Amarillo, y la intensidad es máxima
+    """Tracing gráfico, utilizando una image creada por la librería PIL.
+    Aunque estaremos escribiendo pixel por pixel en modo RGB, en este
+    demo el color será siempre Amarillo, y la intensidad es máxima
     """
-    size = 640, 360                     # Tamaño de la imagen generada (w, h)
-    img = Image.new('RGB', size, 0)
+    size = 640, 360  # Tamaño de la imagen generada (w, h)
+    img = Image.new("RGB", size, 0)
     parser = make_parser()
     parsed = parser.parse_string(scene)
-    #print(parsed.dump())
     raygen = ray_generator(*size, Vec3(0, 0, -40), 30)
 
     for ray, i in raygen:
         for obj in parsed.as_list():
-            img.putpixel((i % size[0], i // size[0]),
-                        (255, 255, 0) if intersection(ray, obj) else (0, 0, 0))
+            img.putpixel(
+                (i % size[0], i // size[0]),
+                (255, 255, 0) if intersection(ray, obj) else (0, 0, 0),
+            )
 
     img.show()
 
+
 def main(args):
-    #plot_rays()
-    #trace(SCENE)
+    # plot_rays()
+    # trace(SCENE)
     graph_trace(SCENE)
     return 0
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     import sys
+
     sys.exit(main(sys.argv))
 
 """
@@ -166,7 +168,3 @@ Otras formas de Tracer
 #             else:
 #                 print(' ', end = '')
 #             if i % 32 == 0: print()
-
-
-
-

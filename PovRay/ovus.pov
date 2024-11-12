@@ -14,8 +14,3 @@ ovus {
     2, 1
     scale 50
 }
-
-ovus {
-    2, 1
-    scale 25
-}
