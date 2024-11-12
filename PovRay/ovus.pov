@@ -15,4 +15,7 @@ ovus {
     pigment {
         color rgb <1, 1, 0>
     }
+    rotate <45, 0, 0>
+    translate 1.5
+    scale 1.5
 }

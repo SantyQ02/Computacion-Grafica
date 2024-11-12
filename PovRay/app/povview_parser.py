@@ -34,7 +34,7 @@ def make_parser():
         + pp.Suppress(">")
     )
 
-    color_vector3 = pp.Group(
+    color_vector3 = (
         pp.Suppress("<")
         + sfloat("r")
         + comma
@@ -44,7 +44,7 @@ def make_parser():
         + pp.Suppress(">")
     )
 
-    rgb_vector3 = (
+    rgb_vector3 = pp.Group(
         pp.Suppress(pp.Keyword("color"))
         + pp.Suppress(pp.Keyword("rgb"))
         + color_vector3
@@ -71,13 +71,25 @@ def make_parser():
         + close_brace
     ).setResultsName("cameras", listAllMatches=True)
 
-    pigment = pp.Keyword("pigment") + open_brace + rgb_vector3 + close_brace
-
-    modifiers_list = [pigment]
-
-    object_modifiers = pp.ZeroOrMore(pp.Or(modifiers_list)).setResultsName(
-        "object_modifiers", listAllMatches=True
+    pigment = pp.Group(
+        pp.Keyword("pigment")("type") + open_brace + rgb_vector3("color") + close_brace
     )
+
+    rotation = pp.Group(
+        pp.Keyword("rotate")("type") + (vector3("rotation_vector") | sfloat("rotate_value"))
+    )
+
+    translation = pp.Group(
+        pp.Keyword("translate")("type") + (vector3("translation_vector") | sfloat("translate_value"))
+    )
+
+    scale = pp.Group(
+        pp.Keyword("scale")("type") + (vector3("scale_vector") | sfloat("scale_value"))
+    )
+
+    object_modifiers = pp.Group(
+        pp.ZeroOrMore(pigment | rotation | translation | scale)
+    ).setResultsName("object_modifiers", listAllMatches=False)
 
     ovus_parser = (
         pp.Keyword("ovus")("type")
