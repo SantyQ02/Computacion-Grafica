@@ -3,7 +3,8 @@
 import gi
 
 gi.require_version("Gtk", "3.0")
-gi.require_version("GooCanvas", "3.0")
+from utils.goocanvas_util import setup_goocanvas
+setup_goocanvas()
 from gi.repository import GooCanvas
 from sympy import symbols, Eq, solve, re, im, N
 import numpy as np
