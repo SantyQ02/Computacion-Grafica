@@ -34,9 +34,9 @@ class ThreeD_object:
         self.create_wireframe()
 
     def create_wireframe(self):
-        pass
+        return
 
-    def apply_rotation(self, angle_vector: list[float], vector: list[float]):
+    def apply_rotation(self, angle_vector: list[float]):
         angle_vector = [radians(angle) for angle in angle_vector]
         x_rotation_matrix = np.array(
             [
@@ -63,9 +63,46 @@ class ThreeD_object:
             np.matmul(x_rotation_matrix, y_rotation_matrix), z_rotation_matrix
         )
 
-        vector = np.array(vector)
-        return np.matmul(rotation_matrix, vector)
-    
+        for i, vertex in enumerate(self.vertexes):
+            self.vertexes[i] = np.matmul(rotation_matrix, np.array(vertex))
+
+    def apply_translation(self, translation_vector: list[float]):
+        translation_matrix = np.array(
+            [
+                [1, 0, 0, translation_vector[0]],
+                [0, 1, 0, translation_vector[1]],
+                [0, 0, 1, translation_vector[2]],
+                [0, 0, 0, 1],
+            ]
+        )
+
+        for i, vertex in enumerate(self.vertexes):
+            self.vertexes[i] = np.delete(
+                np.matmul(translation_matrix, np.array(vertex)), -1
+            )
+
+    def apply_scale(self, scale_vector: list[float]):
+        scale_matrix = np.array(
+            [
+                [scale_vector[0], 0, 0],
+                [0, scale_vector[1], 0],
+                [0, 0, scale_vector[2]],
+            ]
+        )
+
+        for i, vertex in enumerate(self.vertexes):
+            self.vertexes[i] = np.matmul(scale_matrix, np.array(vertex))
+
+    def apply_modifiers(self):
+        for modifier in self.modifiers:
+            match modifier["type"]:
+                case "translate":
+                    self.apply_translation(modifier["vector"])
+                case "rotate":
+                    self.apply_rotation(modifier["vector"])
+                case "scale":
+                    self.apply_scale(modifier["vector"])
+
     def to_svg(self, view):
         svg = ""
         match view:
