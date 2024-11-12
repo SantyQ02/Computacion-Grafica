@@ -5,11 +5,10 @@ import gi
 
 gi.require_version("Gtk", "3.0")
 gi.require_version("GooCanvas", "3.0")
-from gi.repository import Gtk, Gdk, GooCanvas
+from gi.repository import Gtk, GooCanvas
 
 from main_menu import Main_menu
-from povview_things import Vec3, Cone, Ovus
-from pdb import set_trace as st
+from povview_things import Cone, Ovus
 from povview_parser import parse
 
 
@@ -120,114 +119,20 @@ class MainWindow(Gtk.Window):
         self.updating_pitch = False
         self.updating_roll = False
 
-        # Existing Labels and Entries
-        label_circular = Gtk.Label(label="CIRCULAR_SUBDIV")
-        label_circular.set_xalign(0)
-        self.entry_circular = Gtk.Entry(text="50")
-        self.entry_circular.set_hexpand(True)
-        self.entry_circular.connect("changed", self.on_params_changed)
+        subdiv_label = Gtk.Label(label="SUBDIV")
+        subdiv_label.set_xalign(0)
+        self.subdiv_entry = Gtk.Entry(text="50")
+        self.subdiv_entry.set_hexpand(True)
+        self.subdiv_entry.connect("changed", self.on_params_changed)
 
-        label_vertical = Gtk.Label(label="VERTICAL_SUBDIV")
-        label_vertical.set_xalign(0)
-        self.entry_vertical = Gtk.Entry(text="100")
-        self.entry_vertical.set_hexpand(True)
-        self.entry_vertical.connect("changed", self.on_params_changed)
+        subdiv_vbox = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
+        subdiv_vbox.pack_start(subdiv_label, False, False, 0)
+        subdiv_vbox.pack_start(self.subdiv_entry, False, False, 0)
 
-        self.checkbox_squared = Gtk.CheckButton(label="SQUARED")
-        self.checkbox_squared.connect("toggled", self.on_params_changed)
-
-        # Yaw
-        label_yaw = Gtk.Label(label="YAW")
-        label_yaw.set_xalign(0)
-        self.entry_yaw = Gtk.Entry(text="0")
-        self.entry_yaw.set_hexpand(True)
-        self.entry_yaw.connect("changed", self.on_params_changed)
-        self.entry_yaw.connect("focus-out-event", self.on_entry_yaw_focus_out)
-
-        # Create Scale for YAW
-        adjustment_yaw = Gtk.Adjustment(
-            value=0, lower=-180, upper=180, step_increment=1, page_increment=10
-        )
-        self.scale_yaw = Gtk.Scale(
-            orientation=Gtk.Orientation.HORIZONTAL, adjustment=adjustment_yaw
-        )
-        self.scale_yaw.set_digits(0)
-        self.scale_yaw.set_hexpand(True)
-        self.scale_yaw.connect("value-changed", self.on_scale_yaw_changed)
-
-        # Pitch
-        label_pitch = Gtk.Label(label="PITCH")
-        label_pitch.set_xalign(0)
-        self.entry_pitch = Gtk.Entry(text="0")
-        self.entry_pitch.set_hexpand(True)
-        self.entry_pitch.connect("changed", self.on_params_changed)
-        self.entry_pitch.connect("focus-out-event", self.on_entry_pitch_focus_out)
-
-        # Create Scale for PITCH
-        adjustment_pitch = Gtk.Adjustment(
-            value=0, lower=-90, upper=90, step_increment=1, page_increment=10
-        )
-        self.scale_pitch = Gtk.Scale(
-            orientation=Gtk.Orientation.HORIZONTAL, adjustment=adjustment_pitch
-        )
-        self.scale_pitch.set_digits(0)
-        self.scale_pitch.set_hexpand(True)
-        self.scale_pitch.connect("value-changed", self.on_scale_pitch_changed)
-
-        # Roll
-        label_roll = Gtk.Label(label="ROLL")
-        label_roll.set_xalign(0)
-        self.entry_roll = Gtk.Entry(text="0")
-        self.entry_roll.set_hexpand(True)
-        self.entry_roll.connect("changed", self.on_params_changed)
-        self.entry_roll.connect("focus-out-event", self.on_entry_roll_focus_out)
-
-        # Create Scale for ROLL
-        adjustment_roll = Gtk.Adjustment(
-            value=0, lower=-180, upper=180, step_increment=1, page_increment=10
-        )
-        self.scale_roll = Gtk.Scale(
-            orientation=Gtk.Orientation.HORIZONTAL, adjustment=adjustment_roll
-        )
-        self.scale_roll.set_digits(0)
-        self.scale_roll.set_hexpand(True)
-        self.scale_roll.connect("value-changed", self.on_scale_roll_changed)
-
-        # Organize existing entries into vertical boxes
-        vbox_circular = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
-        vbox_circular.pack_start(label_circular, False, False, 0)
-        vbox_circular.pack_start(self.entry_circular, False, False, 0)
-
-        vbox_vertical = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
-        vbox_vertical.pack_start(label_vertical, False, False, 0)
-        vbox_vertical.pack_start(self.entry_vertical, False, False, 0)
-
-        # Organize new entries and scales into vertical boxes
-        vbox_yaw = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
-        vbox_yaw.pack_start(label_yaw, False, False, 0)
-        vbox_yaw.pack_start(self.entry_yaw, False, False, 0)
-        vbox_yaw.pack_start(self.scale_yaw, False, False, 0)
-
-        vbox_pitch = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
-        vbox_pitch.pack_start(label_pitch, False, False, 0)
-        vbox_pitch.pack_start(self.entry_pitch, False, False, 0)
-        vbox_pitch.pack_start(self.scale_pitch, False, False, 0)
-
-        vbox_roll = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=5)
-        vbox_roll.pack_start(label_roll, False, False, 0)
-        vbox_roll.pack_start(self.entry_roll, False, False, 0)
-        vbox_roll.pack_start(self.scale_roll, False, False, 0)
-
-        # Create the main horizontal box and pack all vertical boxes
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
         hbox.set_homogeneous(False)
 
-        hbox.pack_start(vbox_circular, True, True, 0)
-        hbox.pack_start(vbox_vertical, True, True, 0)
-        hbox.pack_start(vbox_roll, True, True, 0)
-        hbox.pack_start(vbox_pitch, True, True, 0)
-        hbox.pack_start(vbox_yaw, True, True, 0)
-        hbox.pack_start(self.checkbox_squared, False, False, 0)
+        hbox.pack_start(subdiv_vbox, True, True, 0)
 
         self.views = Views()
 
@@ -238,96 +143,6 @@ class MainWindow(Gtk.Window):
         self.add(grid)
         self.show_all()
         self.maximize()
-
-    def on_scale_yaw_changed(self, scale):
-        value = scale.get_value()
-        self.entry_yaw.set_text(str(int(value)))
-
-    def on_scale_pitch_changed(self, scale):
-        value = scale.get_value()
-        self.entry_pitch.set_text(str(int(value)))
-
-    def on_scale_roll_changed(self, scale):
-        value = scale.get_value()
-        self.entry_roll.set_text(str(int(value)))
-
-    def on_params_changed(self, param):
-        self.views.clear_views()
-        self.views.unique_obj.set_params(**self.get_params())
-        self.views.draw()
-
-    def on_entry_yaw_focus_out(self, entry, event):
-        print(entry.get_text())
-        if self.updating_yaw:
-            return
-        self.updating_yaw = True
-        text = entry.get_text()
-        try:
-            value = int(text)
-            entry.override_background_color(Gtk.StateFlags.NORMAL, None)
-        except ValueError:
-            rgba = Gdk.RGBA(1, 0, 0, 0.3)
-            entry.override_background_color(Gtk.StateFlags.NORMAL, rgba)
-            value = int(self.scale_yaw.get_value())
-            entry.set_text(str(value))
-            self.updating_yaw = False
-            return
-
-        adjustment = self.scale_yaw.get_adjustment()
-        value = max(
-            int(adjustment.get_lower()), min(int(adjustment.get_upper()), value)
-        )
-
-        self.scale_yaw.set_value(value)
-        self.updating_yaw = False
-
-    def on_entry_pitch_focus_out(self, entry, event):
-        if self.updating_pitch:
-            return
-        self.updating_pitch = True
-        text = entry.get_text()
-        try:
-            value = int(text)
-            entry.override_background_color(Gtk.StateFlags.NORMAL, None)
-        except ValueError:
-            rgba = Gdk.RGBA(1, 0, 0, 0.3)
-            entry.override_background_color(Gtk.StateFlags.NORMAL, rgba)
-            value = int(self.scale_pitch.get_value())
-            entry.set_text(str(value))
-            self.updating_pitch = False
-            return
-
-        adjustment = self.scale_pitch.get_adjustment()
-        value = max(
-            int(adjustment.get_lower()), min(int(adjustment.get_upper()), value)
-        )
-
-        self.scale_pitch.set_value(value)
-        self.updating_pitch = False
-
-    def on_entry_roll_focus_out(self, entry, event):
-        if self.updating_roll:
-            return
-        self.updating_roll = True
-        text = entry.get_text()
-        try:
-            value = int(text)
-            entry.override_background_color(Gtk.StateFlags.NORMAL, None)
-        except ValueError:
-            rgba = Gdk.RGBA(1, 0, 0, 0.3)
-            entry.override_background_color(Gtk.StateFlags.NORMAL, rgba)
-            value = int(self.scale_roll.get_value())
-            entry.set_text(str(value))
-            self.updating_roll = False
-            return
-
-        adjustment = self.scale_roll.get_adjustment()
-        value = max(
-            int(adjustment.get_lower()), min(int(adjustment.get_upper()), value)
-        )
-
-        self.scale_roll.set_value(value)
-        self.updating_roll = False
 
     def run(self):
         Gtk.main()
@@ -352,15 +167,13 @@ class MainWindow(Gtk.Window):
 
     def get_params(self):
         return {
-            "CIRCULAR_SUBDIV": int(self.entry_circular.get_text()),
-            "VERTICAL_SUBDIV": int(self.entry_vertical.get_text()),
-            "ROTATION_VECTOR": [
-                float(self.entry_roll.get_text()),
-                float(self.entry_pitch.get_text()),
-                float(self.entry_yaw.get_text()),
-            ],
-            "SQUARED": self.checkbox_squared.get_active(),
+            "SUBDIV": int(self.subdiv_entry.get_text()),
         }
+
+    def on_params_changed(self, param):
+        self.views.clear_views()
+        self.views.unique_obj.set_params(**self.get_params())
+        self.views.draw()
 
     def on_add_cone_clicked(self, menuitem):
         self.views.clear_views()
