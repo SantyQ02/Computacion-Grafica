@@ -15,14 +15,14 @@ from math import cos, sin, pi, sqrt, radians
 LINE_COLOR = "darkgrey"
 
 
-class ThreeD_object:
+class Object3D:
     def __init__(
         self,
         data,
         SUBDIV=50,
     ):
         self._SUBDIV = SUBDIV
-        self.vertexes = []
+        self.vertices = []
         self.edges = []
         self.modifiers = data["object_modifiers"]
 
@@ -35,7 +35,7 @@ class ThreeD_object:
     def set_params(self, SUBDIV):
         self.set_SUBDIV(SUBDIV)
 
-        self.vertexes.clear()
+        self.vertices.clear()
         self.edges.clear()
 
         self.create_wireframe()
@@ -78,8 +78,8 @@ class ThreeD_object:
             np.matmul(x_rotation_matrix, y_rotation_matrix), z_rotation_matrix
         )
 
-        for i, vertex in enumerate(self.vertexes):
-            self.vertexes[i] = np.matmul(rotation_matrix, np.array(vertex))
+        for i, vertex in enumerate(self.vertices):
+            self.vertices[i] = np.matmul(rotation_matrix, np.array(vertex))
 
     def apply_translation(self, translation_vector: tuple[float]):
         translation_matrix = np.array(
@@ -91,8 +91,8 @@ class ThreeD_object:
             ]
         )
 
-        for i, vertex in enumerate(self.vertexes):
-            self.vertexes[i] = np.delete(
+        for i, vertex in enumerate(self.vertices):
+            self.vertices[i] = np.delete(
                 np.matmul(translation_matrix, np.append(np.array(vertex), 1)), -1
             )
 
@@ -105,8 +105,8 @@ class ThreeD_object:
             ]
         )
 
-        for i, vertex in enumerate(self.vertexes):
-            self.vertexes[i] = np.matmul(scale_matrix, np.array(vertex))
+        for i, vertex in enumerate(self.vertices):
+            self.vertices[i] = np.matmul(scale_matrix, np.array(vertex))
 
     def apply_modifiers(self):
         for modifier in self.modifiers:
@@ -125,15 +125,15 @@ class ThreeD_object:
         match view:
             case "xy":
                 for edge in self.edges:
-                    svg += f"M{self.vertexes[edge[0]][0]:g},{self.vertexes[edge[0]][1]:g} L{self.vertexes[edge[1]][0]:g},{self.vertexes[edge[1]][1]:g} "
+                    svg += f"M{self.vertices[edge[0]][0]:g},{self.vertices[edge[0]][1]:g} L{self.vertices[edge[1]][0]:g},{self.vertices[edge[1]][1]:g} "
 
             case "zy":
                 for edge in self.edges:
-                    svg += f"M{self.vertexes[edge[0]][2]:g},{self.vertexes[edge[0]][1]:g} L{self.vertexes[edge[1]][2]:g},{self.vertexes[edge[1]][1]:g} "
+                    svg += f"M{self.vertices[edge[0]][2]:g},{self.vertices[edge[0]][1]:g} L{self.vertices[edge[1]][2]:g},{self.vertices[edge[1]][1]:g} "
 
             case "zx":
                 for edge in self.edges:
-                    svg += f"M{self.vertexes[edge[0]][2]:g},{self.vertexes[edge[0]][0]:g} L{self.vertexes[edge[1]][2]:g},{self.vertexes[edge[1]][0]:g} "
+                    svg += f"M{self.vertices[edge[0]][2]:g},{self.vertices[edge[0]][0]:g} L{self.vertices[edge[1]][2]:g},{self.vertices[edge[1]][0]:g} "
 
             case _:
                 raise ValueError("Invalid view")
@@ -152,7 +152,7 @@ class ThreeD_object:
             )
 
 
-class Cone(ThreeD_object):
+class Cone(Object3D):
     """
     tc      self.top_center     vec3    Cone top center
     tr      self.top_radius     float   Cone top radius
@@ -160,11 +160,10 @@ class Cone(ThreeD_object):
     br      self.bottom_radius     float   Cone bottom radius
     """
 
-    # TODO: Update interface to parsed values
     def __init__(self, cone_data, **kwargs):
-        self.top_center = cone_data["top_center"]
+        self.top_center = self.handle_value(cone_data["top_center"])
         self.top_radius = cone_data["top_radius"]
-        self.bottom_center = cone_data["bottom_center"]
+        self.bottom_center = self.handle_value(cone_data["bottom_center"])
         self.bottom_radius = cone_data["bottom_radius"]
 
         super().__init__(cone_data, **kwargs)
@@ -179,22 +178,22 @@ class Cone(ThreeD_object):
         )
 
     def create_wireframe(self):
-        # Vertexes
+        # Vertices
         circ_sub = 2 * pi / self._SUBDIV
 
         for i in range(self._SUBDIV):
-            self.vertexes.append(
-                [
-                    self.top_center[0] + self.top_radius * cos(circ_sub * i),
-                    -self.top_center[1],
-                    self.top_center[2] + self.top_radius * sin(circ_sub * i),
-                ]
-            )
-            self.vertexes.append(
+            self.vertices.append(
                 [
                     self.bottom_center[0] + self.bottom_radius * cos(circ_sub * i),
                     -self.bottom_center[1],
                     self.bottom_center[2] + self.bottom_radius * sin(circ_sub * i),
+                ]
+            )
+            self.vertices.append(
+                [
+                    self.top_center[0] + self.top_radius * cos(circ_sub * i),
+                    -self.top_center[1],
+                    self.top_center[2] + self.top_radius * sin(circ_sub * i),
                 ]
             )
 
@@ -208,8 +207,13 @@ class Cone(ThreeD_object):
         self.edges.append((-1, 1))
         self.edges.append((-2, 0))
 
+        # -- Triangulation
+        for i in range(self._SUBDIV - 1):
+            self.edges.append((i * 2, (i + 1) * 2 + 1))
+        self.edges.append((-2, 1))
 
-class Ovus(ThreeD_object):
+
+class Ovus(Object3D):
     def __init__(self, ovus_data, **kwargs):
         self.base_point = (0, 0, 0)
         self.bottom_radius = ovus_data["bottom_radius"]
@@ -291,7 +295,7 @@ class Ovus(ThreeD_object):
             return self.get_radius(self.top_radius, y - self.top_center[1])
 
     def create_wireframe(self):
-        # Vertexes
+        # Vertices
         circ_sub = 2 * pi / self._SUBDIV
 
         if self.is_sphere:
@@ -327,7 +331,7 @@ class Ovus(ThreeD_object):
             )
 
             for j in range(self._SUBDIV):
-                self.vertexes.append(
+                self.vertices.append(
                     [
                         self.base_point[0] + radius * cos(circ_sub * j),
                         -y,
@@ -340,8 +344,8 @@ class Ovus(ThreeD_object):
             -top_point[1],
         )
 
-        self.vertexes.insert(0, bottom_point)
-        self.vertexes.append(top_point)
+        self.vertices.insert(0, bottom_point)
+        self.vertices.append(top_point)
 
         # Edges
         for i in range(self._SUBDIV):
@@ -356,6 +360,14 @@ class Ovus(ThreeD_object):
             for i in range(self._SUBDIV - 1):
                 self.edges.append((i + 1 + j * self._SUBDIV, i + 2 + j * self._SUBDIV))
             self.edges.append(((j + 1) * self._SUBDIV, 1 + j * self._SUBDIV))
+
+        # -- Triangulation
+        for j in range(self._SUBDIV - 2):
+            for i in range(self._SUBDIV - 1):
+                self.edges.append(
+                    ((i + 1) + j * self._SUBDIV, (i + 2) + (j + 1) * self._SUBDIV)
+                )
+            self.edges.append(((i + 2) + j * self._SUBDIV, 1 + (j + 1) * self._SUBDIV))
 
     def draw_on(self, views):
         for view in ["xy", "zy", "zx"]:

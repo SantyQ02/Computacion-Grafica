@@ -60,6 +60,12 @@ class Views(Gtk.Grid):
             frame.add(canvas)
             self.views[lbl] = {"frame": frame, "canvas": canvas}
 
+            # Block scroll events on the canvas
+            canvas.connect("scroll-event", self.on_scroll_event)
+
+    def on_scroll_event(self, widget, event):
+        return True
+
     def on_frame_size_allocate(self, widget, allocation):
         self.frame_width = widget.get_allocated_width()
         self.frame_height = widget.get_allocated_height()
@@ -76,6 +82,12 @@ class Views(Gtk.Grid):
             )
 
     def clear_views(self):
+        for view in self.views:
+            root = self.views[view]["canvas"].get_root_item()
+            for i in range(root.get_n_children() - 1, -1, -1):
+                root.get_child(i).remove()
+
+    def full_clear_views(self):
         for view in self.views:
             root = self.views[view]["canvas"].get_root_item()
             for i in range(root.get_n_children() - 1, -1, -1):
@@ -168,7 +180,7 @@ class MainWindow(Gtk.Window):
         self.views.draw()
 
     def on_add_cone_clicked(self, menuitem):
-        self.views.clear_views()
+        self.views.full_clear_views()
         self.views.add_object(
             TEST_CONE,
             **self.get_params(),
@@ -176,7 +188,7 @@ class MainWindow(Gtk.Window):
         self.views.draw()
 
     def on_add_ovus_clicked(self, menuitem):
-        self.views.clear_views()
+        self.views.full_clear_views()
         self.views.add_object(
             TEST_OVUS,
             **self.get_params(),
@@ -213,7 +225,7 @@ class MainWindow(Gtk.Window):
 
         fc.destroy()
 
-        self.views.clear_views()
+        self.views.full_clear_views()
 
         parsed_file = parse(self.file)
 
