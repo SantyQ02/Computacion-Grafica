@@ -26,6 +26,31 @@ from math import cos, sin, pi, sqrt
 from pdb import set_trace as st
 from numbers import Number
 
+COLORS = {
+    "Black": [0, 0, 0],
+    "White": [1, 1, 1],
+    "Red": [1, 0, 0],
+    "DarkRed": [0.5, 0, 0],
+    "Green": [0, 1, 0],
+    "DarkGreen": [0, 0.5, 0],
+    "Blue": [0, 0, 1],
+    "DarkBlue": [0, 0, 0.5],
+    "Yellow": [1, 1, 0],
+    "Purple": [1, 0, 1],
+    "Cyan": [0, 1, 1],
+    "Orange": [1, 0.5, 0],
+    "Salmon": [0.98, 0.5, 0.447],
+    "Rosa": [1, 0.75, 0.8],
+    "Coral": [1, 0.5, 0.313],
+    "Gold": [1, 215, 0.81],
+    "Violet": [0.93, 0.51, 0.93],
+    "Olive": [0.5, 0.5, 0],
+    "Chocolate": [0.82, 0.41, 0.12],
+    "Gray25": [0.25, 0.25, 0.25],
+    "Gray": [0.5, 0.5, 0.5],
+    "Gray75": [0.75, 0.75, 0.75],
+}
+
 # __     __        ____
 # \ \   / /__  ___|___ \
 #  \ \ / / _ \/ __| __) |
@@ -36,6 +61,7 @@ from numbers import Number
 
 class Vec2:
     def __init__(self, new_x, new_y=None):
+        print(new_x, new_y)
         if isinstance(new_x, Vec2):
             assert new_y == None
 
@@ -94,7 +120,7 @@ class Vec3:
         return self._z
 
     def __str__(self):
-        return f"(Vec3) x: {self._x:g}, y: {self._y:g}, z: {self._z:g}"
+        return f"(Vec3: {self._x:g}, {self._y:g}, {self._z:g})"
 
     def __abs__(self):
         return self.mag()
@@ -190,7 +216,142 @@ class Vec4:
         return self._w
 
     def __str__(self):
-        return f"(Vec3) x: {self._x:g}, y: {self._y:g}, z: {self._z:g}, z: {self._w:g}"
+        return f"(Vec4) x: {self.x:g}, y: {self._y:g}, z: {self._z:g}, w: {self._w:g}"
+
+
+#  ____   ____ ____
+# |  _ \ / ___| __ )
+# | |_) | |  _|  _ \
+# |  _ <| |_| | |_) |
+# |_| \_\\____|____/
+#
+
+
+class RGB:
+    def __init__(self, r, g=None, b=None):
+        if isinstance(r, list) or isinstance(r, tuple):
+            self._rgb = r
+        elif (g is None) and (b is None):
+            self._rgb = [r, r, r]
+        else:
+            self._rgb = [r, g, b]
+
+    def __str__(self):
+        return f"(RBA) r: {self._rgb[0]}, g: {self._rgb[1]}, b: {self._rgb[2]}"
+
+    def limit(self):
+        for c in range(3):
+            self._rgb[c] = min(self._rgb[c], 1)
+            self._rgb[c] = max(self._rgb[c], 0)
+        return self
+
+    def __add__(self, c2):
+        for c in range(3):
+            self._rgb[c] += c2._rgb[c]
+        return self
+
+    def __sub__(self, c2):
+        for c in range(3):
+            self._rgb[c] -= c2._rgb[c]
+        return self
+
+    def __mul__(self, f):
+        for c in range(3):
+            self._rgb[c] *= f
+        return self
+
+    @property
+    def r(self):
+        return self._rgb[0]
+
+    @property
+    def g(self):
+        return self._rgb[1]
+
+    @property
+    def b(self):
+        return self._rgb[2]
+
+    @property
+    def rgb(self):
+        return self._rgb
+
+    @property
+    def as_rgb8(self):
+        return (self._r * 255, self._g * 255, self._b * 255)
+
+
+#
+#  ____   ____ ____    _
+# |  _ \ / ___| __ )  / \
+# | |_) | |  _|  _ \ / _ \
+# |  _ <| |_| | |_) / ___ \
+# |_| \_\\____|____/_/   \_\
+#
+
+
+class RGBA:
+    def __init__(self, r, g=None, b=None, a=None):
+        if isinstance(r, list) or isinstance(r, tuple):
+            assert len(r) == 4
+            assert g is None
+            assert b is None
+            assert a is None
+            self._rgba = r
+        else:
+            assert g is not None
+            assert b is not None
+            assert a is not None
+            self._rgba = [r, g, b, a]
+
+    def __str__(self):
+        return (
+            f"(RGBA) r: {self._rgba[0]}, "
+            f"g: {self._rgba[1]}, "
+            f"b: {self._rgba[2]}, "
+            f"a: {self._rgba[3]}"
+        )
+
+    def limit(self):
+        for c in range(4):
+            self._rgba[c] = min(self._rgba[c], 1)
+            self._rgba[c] = max(self._rgba[c], 0)
+        return self
+
+    def __add__(self, c2):
+        for c in range(4):
+            self._rgba[c] += c2._rgba[c]
+        return self
+
+    def __sub__(self, c2):
+        for c in range(4):
+            self._rgba[c] -= c2._rgba[c]
+        return self
+
+    def __mul__(self, f):
+        for c in range(4):
+            self._rgba[c] *= f
+        return self
+
+    @property
+    def r(self):
+        return self._rgba[0]
+
+    @property
+    def g(self):
+        return self._rgba[1]
+
+    @property
+    def b(self):
+        return self._rgba[2]
+
+    @property
+    def a(self):
+        return self._rgba[3]
+
+    @property
+    def rgba(self):
+        return self._rgba
 
 
 #  ____
@@ -223,62 +384,24 @@ class Hit:
 
 class Hit_list:
     def __init__(self):
-        self.hits = []
+        self.clear()
 
-    def add_hit(self, hit):
+    def append(self, hit):
         self.hits.append(hit)
 
+    def empty(self):
+        self.hits == []
+
     def nearest_hit(self):
-        return min(self.hits, key=lambda h: h.t)
+        nearest = Hit(None, float("inf"))
+        for hit in self.hits:
+            if hit.t < nearest.t:
+                nearest = hit
 
+        return nearest
 
-#  ____   ____ ____
-# |  _ \ / ___| __ )
-# | |_) | |  _|  _ \
-# |  _ <| |_| | |_) |
-# |_| \_\\____|____/
-#
-
-
-class RGB:
-    def __init__(self, r, g=None, b=None):
-        if isinstance(r, list):
-            self._rgb = r
-        else:
-            self._rgb = [r, g, b]
-
-    def __str__(self):
-        return f"r: {self._rgb[0]}, g: {self._rgb[1]}, b: {self._rgb[2]}"
-
-    @property
-    def r(self):
-        return self._rgb[0]
-
-    @property
-    def g(self):
-        return self._rgb[1]
-
-    @property
-    def b(self):
-        return self._rgb[2]
-
-    @property
-    def rgb(self):
-        return self._rgb
-
-
-#
-#  ____   ____ ____    _
-# |  _ \ / ___| __ )  / \
-# | |_) | |  _|  _ \ / _ \
-# |  _ <| |_| | |_) / ___ \
-# |_| \_\\____|____/_/   \_\
-#
-
-
-class RGBA:
-    def __init__(self, r, g, b, a):
-        self.r, self.g, self.b, self.a = r, g, b, a
+    def clear(self):
+        self.hits = []
 
 
 #  _     _ _                            _            _
@@ -319,18 +442,47 @@ def test_Ray():
         print(f"{test} --> {str(eval(test))}")
 
 
+def test_RGB():
+    for test in [
+        "RGB(0.1, 0.2, 0.3)",
+        "RGB(0.1, 0.2, 0.3).limit()",
+        "RGB(1.1, 1.2, 1.2).limit()",
+        "RGB(-0.1, -0.2, -0.2).limit()",
+        "RGB(0.1, 0.2, 0.3) * 2",
+        "RGB(0.1, 0.2, 0.3) + RGB(0.15, 0.25, 0.35)",
+        "RGB(0.1, 0.2, 0.3) - RGB(0.15, 0.25, 0.35)",
+        "RGB(0.123)",
+    ]:
+        print(f"{test}\n --> {str(eval(test))}")
+
+
+def test_RGBA():
+    for test in [
+        "RGBA(0.1, 0.2, 0.3, 0.4)",
+        "RGBA(0.1, 0.2, 0.3, 0.4).limit()",
+        "RGBA(1.1, 1.2, 1.2, 0.4).limit()",
+        "RGBA(-0.1, -0.2, -0.2, -0.4).limit()",
+        "RGBA(0.1, 0.2, 0.3, 0.4) * 2",
+        "RGBA(0.1, 0.2, 0.3, 0.4) + RGBA(0.15, 0.25, 0.35, 0.45)",
+        "RGBA(0.1, 0.2, 0.3, 0.4) - RGBA(0.15, 0.25, 0.35, 0.45)",
+    ]:
+        print(f"{test}\n --> {str(eval(test))}")
+
+
 def test_hit_list():
     lst = Hit_list()
-    lst.add_hit(Hit(None, 1.23))
-    lst.add_hit(Hit(None, -1.23))
-    lst.add_hit(Hit(None, 1.24))
-    lst.add_hit(Hit(None, 10.23))
+    lst.append(Hit(None, 1.23))
+    lst.append(Hit(None, -1.23))
+    lst.append(Hit(None, 1.24))
+    lst.append(Hit(None, 10.23))
     print("Least: ", lst.nearest_hit().t)
 
 
 def main(args):
     # ~ test_Vec3()
     # ~ test_Ray()
+    # ~ test_RGB()
+    # ~ test_RGBA()
     test_hit_list()
     return 0
 

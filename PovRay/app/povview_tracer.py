@@ -26,46 +26,13 @@
 import pylab as plt
 import numpy as np
 
-from povview_parser import make_parser
-from povview_math import Vec3, Ray, Hit, Hit_list
+from povview_parser import make_pov_parser, make_catalog
+from povview_math import Vec3, RGB, Ray, Hit, Hit_list
 from math import tan, radians, sqrt
 
 from PIL import Image
 
 from pdb import set_trace as st
-
-SCENE = """
-sphere { 
-    <0, 0, 0>, 5
-}
-"""
-
-
-def intersection(ray: Ray, obj):
-    """Rutina de cálculo de los eventuales puntos de intersección entre un rayo
-    y un objeto (en este caso una esfera). Normalmente, la definición de
-    la rutina de intersección debería formar parte de la clases de
-    cada tipo de objeto.
-    """
-    loc = Vec3(obj[1])
-    rad = obj[2]
-
-    # Ver cg_math.pdf para explicación del cálculo
-    a = 1  #  R1 • R1 = 1
-    b = ray.direction * (ray.location - loc) * 2  #  2(R1 • (R0 − C)
-    c = abs(ray.location - loc) ** 2 - rad**2  #  ||R0 − C||^2 − r^2
-
-    if b**2 < 4 * c:
-        return []
-
-    elif b**2 == 4 * c:
-        return [Hit(obj, -b / 2)]
-
-    else:
-        return [
-            Hit(obj, (-b - sqrt(b**2 - 4 * c)) / 2),
-            Hit(obj, (-b + sqrt(b**2 - 4 * c)) / 2),
-        ]
 
 
 def ray_generator(w, h, loc, angle):
@@ -92,31 +59,92 @@ def ray_generator(w, h, loc, angle):
         yield Ray(loc, direction.normalized()), i
 
 
-def graph_trace(scene):
+def mpl_plot_rays(raygen):
+    x = []
+    y = []
+    for r, i in raygen:
+        d = r.direction
+        x.append(d.x)
+        y.append(d.y)
+
+    plt.plot(x, y, ".")
+    plt.title("Gráfico de los puntos finales de los rayos")
+    plt.axis("equal")
+    plt.show()
+
+
+CONE = """
+cone { <0, 0, 0>, 1, <0, 5, 0>, 3
+       }
+"""
+
+SCENE = """
+camera { location <5, 5, -5>
+         look_at <0, 0, 0>
+         up <0, 1, 0>
+}
+light_source { <6, 6, -6>, rgb <1, 0.5, 0>
+}
+sphere { <0, 0, 0>, 1
+         pigment { rgb <0.5, 0.5, 0.5> }
+}
+"""
+
+AMBIENT = 0.2
+
+
+def tracer(size, scene_catalog):
     """Tracing gráfico, utilizando una image creada por la librería PIL.
     Aunque estaremos escribiendo pixel por pixel en modo RGB, en este
     demo el color será siempre Amarillo, y la intensidad es máxima
     """
-    size = 640, 360  # Tamaño de la imagen generada (w, h)
     img = Image.new("RGB", size, 0)
-    parser = make_parser()
-    parsed = parser.parse_string(scene)
+    cameras = scene_catalog["cameras"]
+    things = scene_catalog["things"]
+    lights = scene_catalog["lights"]
+
     raygen = ray_generator(*size, Vec3(0, 0, -40), 30)
+    hitlist = Hit_list()
 
     for ray, i in raygen:
-        for obj in parsed.as_list():
-            img.putpixel(
-                (i % size[0], i // size[0]),
-                (255, 255, 0) if intersection(ray, obj) else (0, 0, 0),
-            )
+        hitlist.clear()  # Cada rayo borramos la list de hits
+        x, y = i % size[0], i // size[0]
 
+        # Para cada objeto:
+        for thing in things:
+
+            # Nos fijamos si está en el camino del rayo y agregamos los impactos
+            hitlist.append(thing.intersection(ray))
+
+        # ~ # Si hay alguna intersection
+        # ~ if not hitlist.empty():
+        # ~ for light in lights:
+        # ~ light_ray = Ray(hit_loc, (light_loc - hit_loc).normalized())
+
+        # ~ for obj in things:
+        # ~ hits = thingie.intersection(light_ray)
+        # ~ for hit in hits:
+        # ~ if hit.t > EPSILON:
+        # ~ fact = 0        # (1 - AMBIENT)
+        # ~ break
+
+        # ~ if fact == 0:
+        # ~ break
+
+        # ~ cos1 = (AMBIENT +
+        # ~ normal * (light_loc - ray.at(t)).normalized() * fact)
+        # ~ hit_color = hit_color + thing_rgb.reflect(light_rgb) * cos1
+        # ~ img.putpixel((x, y), hit_color.as_rgb8())
     img.show()
 
 
 def main(args):
-    # plot_rays()
-    # trace(SCENE)
-    graph_trace(SCENE)
+    st()
+    parser = make_pov_parser()
+    parsed = parser.parse_string(SCENE)
+    catalog = make_catalog(parsed)
+    print(parsed, catalog)
+    tracer((400, 320), catalog)
     return 0
 
 
@@ -124,47 +152,3 @@ if __name__ == "__main__":
     import sys
 
     sys.exit(main(sys.argv))
-
-"""
-Otras formas de Tracer
-"""
-
-# def plot_rays():
-#     """ Grafica los puntos finales de un vector unitario, que itera sobre
-#         todas las direcciones que calcula el generador de rayos. La intención
-#         es mostrar que es importante la distorción de la perspectiva por
-#         la cercanía a la pantalla.
-#     """
-#     raygen = ray_generator(32, 18, Vec3(0, 0, -4), 60)
-#     mpl_plot_rays(raygen)
-#     return 0
-
-# def mpl_plot_rays(raygen):
-#     x = []; y = []
-#     for r, i in raygen:
-#         d = r.direction
-#         x.append(d.x)
-#         y.append(d.y)
-
-#     plt.plot(x, y, '.')
-#     plt.title('Gráfico de los puntos finales de los rayos')
-#     plt.axis('equal')
-#     plt.show()
-
-
-# def trace(scene):
-#     """ Tracing en modo 'text'. El tracer imprime una letra 'M' en caso de
-#         intersección, y un espacio si no hay intersección.
-#     """
-#     parser = make_pov_parser()
-#     parsed = parser.parse_string(scene)
-#     # ~ print(parsed.dump())
-#     raygen = ray_generator(32, 18, Vec3(0, 0, -4), 40)
-
-#     for ray, i in raygen:
-#         for obj in parsed.as_list():
-#             if intersection(ray, obj):
-#                 print('X', end = '')
-#             else:
-#                 print(' ', end = '')
-#             if i % 32 == 0: print()
