@@ -11,6 +11,9 @@ import numpy as np
 from math import cos, sin, pi, sqrt, radians
 from povview_math import Vec3, Ray, Triangle, Hit, HitList, RGB
 from povview_utils import timer
+import os
+import pickle
+from collections import defaultdict
 
 LINE_COLOR = "darkgrey"
 
@@ -191,11 +194,16 @@ class Object3D:
                 case _:
                     raise ValueError("Invalid modifier type")
 
-    # TODO: Slow function, try adding a Cache
+     # TODO: Slow function, try adding a Cache
     @timer
     def generate_faces(self):
-        from collections import defaultdict
-
+        #Cache Load
+        filename = f"faces/{self.__class__.__name__}_{self._subdiv}.txt"
+        if os.path.exists(filename):
+            with open(filename, 'rb') as f:
+                faces = pickle.load(f)
+            return faces
+        
         vertex_to_edges = defaultdict(list)
 
         for i, (v1, v2) in enumerate(self.edges):
@@ -230,6 +238,11 @@ class Object3D:
                     face = tuple(sorted([shared_vertex, other_vertex1, other_vertex2]))
                     if face not in faces:
                         faces.append(face)
+                        
+        #Cache Save
+        os.makedirs(os.path.dirname(filename), exist_ok=True) 
+        with open(filename, 'wb') as f:
+            pickle.dump(faces, f)
 
         return faces
 
