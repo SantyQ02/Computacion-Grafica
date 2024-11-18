@@ -12,6 +12,7 @@ camera {
 
 ovus {
     2, 1
+    translate <0,2.5,35>
     pigment{
         color rgb <1,0,1>
     }
@@ -19,7 +20,6 @@ ovus {
 
 ovus {
     2, 1
-    translate <3,0,0>
     pigment{
         color rgb <1,1,0>
     }

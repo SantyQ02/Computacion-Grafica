@@ -7,13 +7,39 @@ setup_goocanvas()
 from gi.repository import GooCanvas
 from sympy import symbols, Eq, solve, re, im, N
 import numpy as np
-from functools import lru_cache
 
 from math import cos, sin, pi, sqrt, radians
 from povview_math import Vec3, Ray, Triangle, Hit, HitList, RGB
 from povview_utils import timer
 
 LINE_COLOR = "darkgrey"
+
+
+class Camera:
+    def __init__(self, camera_data):
+        self.location = Vec3(Object3D.handle_value(camera_data["location"]))
+        self.look_at = Vec3(Object3D.handle_value(camera_data["look_at"]))
+        self.up = Vec3(Object3D.handle_value(camera_data["up"]))
+
+    def __str__(self):
+        return f"Camera(location={self.location}, look_at={self.look_at}, up={self.up})"
+
+    def __repr__(self):
+        return self.__str__()
+
+
+class LightSource:
+    def __init__(self, light_data):
+        self.position = Vec3(Object3D.handle_value(light_data["position"]))
+        self.color = RGB(
+            light_data["color"]["r"], light_data["color"]["g"], light_data["color"]["b"]
+        )
+
+    def __str__(self):
+        return f"LightSource(position={self.position}, color={self.color})"
+
+    def __repr__(self):
+        return self.__str__()
 
 
 class Object3D:
@@ -77,7 +103,8 @@ class Object3D:
 
         return hitlist
 
-    def handle_value(self, value):
+    @staticmethod
+    def handle_value(value):
         if isinstance(value, list) or isinstance(value, tuple):
             return value
         elif isinstance(value, dict):

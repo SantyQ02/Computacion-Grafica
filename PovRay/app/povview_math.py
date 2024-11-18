@@ -301,7 +301,7 @@ class RGB:
             self._rgb = [r, g, b]
 
     def __str__(self):
-        return f"RGB(r: {self._rgb[0]}, g: {self._rgb[1]}, b: {self._rgb[2]})"
+        return f"RGB({self._rgb[0]}, {self._rgb[1]}, {self._rgb[2]})"
 
     def __repr__(self):
         return self.__str__()
@@ -375,7 +375,9 @@ class RGBA:
             self._rgba = [r, g, b, a]
 
     def __str__(self):
-        return f"RGBA(r: {self._rgba[0]}, g: {self._rgba[1]}, b: {self._rgba[2]}, a: {self._rgba[3]})"
+        return (
+            f"RGBA({self._rgba[0]}, {self._rgba[1]}, {self._rgba[2]}, {self._rgba[3]})"
+        )
 
     def __repr__(self):
         return self.__str__()

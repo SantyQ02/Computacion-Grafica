@@ -2,7 +2,7 @@ import pyparsing as pp
 import json
 import sys
 
-from povview_things import Cone, Sphere, Ovus
+from povview_things import Cone, Sphere, Ovus, Camera, LightSource
 
 
 def make_parser():
@@ -52,16 +52,19 @@ def make_parser():
         + color_vector3
     )
 
-    light = pp.Group(
+    light = (
         pp.Keyword("light_source")
         + open_brace
         + vector3("position")
         + comma
-        + rgb_vector3
+        + rgb_vector3("color")
         + close_brace
-    ).setResultsName("light_sources", listAllMatches=True)
+    ).setResultsName("lights", listAllMatches=True)
+    light.set_parse_action(lambda t: LightSource(t.as_dict()))
 
-    camera = pp.Group(
+    lights = light.setResultsName("lights", listAllMatches=True)
+
+    camera = (
         pp.Keyword("camera")
         + open_brace
         + pp.Keyword("location")
@@ -71,7 +74,10 @@ def make_parser():
         + pp.Keyword("up")
         + vector3("up")
         + close_brace
-    ).setResultsName("cameras", listAllMatches=True)
+    )
+    camera.set_parse_action(lambda t: Camera(t.as_dict()))
+
+    cameras = camera.setResultsName("cameras", listAllMatches=True)
 
     pigment = pp.Group(
         pp.Keyword("pigment")("type") + open_brace + rgb_vector3("color") + close_brace
@@ -136,7 +142,7 @@ def make_parser():
         .setResultsName("objects", listAllMatches=True)
     )
 
-    element = light | camera | objects
+    element = lights | cameras | objects
 
     parser = pp.ZeroOrMore(include_line | element)
 
