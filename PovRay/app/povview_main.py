@@ -4,7 +4,7 @@ gi.require_version("Gtk", "3.0")
 from povview_utils import setup_goocanvas
 
 setup_goocanvas()
-from gi.repository import Gtk, GooCanvas, GdkPixbuf
+from gi.repository import Gtk, GooCanvas
 
 from main_menu import Main_menu
 from povview_things import Cone, Ovus
@@ -47,7 +47,7 @@ class Views(Gtk.Grid):
         self.objs = []
 
         self.views = {}
-        for x, y, lbl in [(0, 0, "xy"), (1, 0, "zy"), (0, 1, "zx")]:
+        for x, y, lbl in [(0, 0, "xy"), (1, 0, "zy"), (0, 1, "zx"), (1, 1, "Tracer")]:
             frame = Gtk.Frame(label=lbl, label_xalign=0.04, hexpand=True, vexpand=True)
             frame.connect("size-allocate", self.on_frame_size_allocate)
             self.attach(frame, x, y, 1, 1)
@@ -61,13 +61,6 @@ class Views(Gtk.Grid):
             # Block scroll events on the canvas
             canvas.connect("scroll-event", self.on_scroll_event)
 
-        # Tracer view
-        self.tracer_frame = Gtk.Frame(
-            label="Tracer", label_xalign=0.04, hexpand=True, vexpand=True
-        )
-        self.tracer_frame.connect("size-allocate", self.on_frame_size_allocate)
-        self.attach(self.tracer_frame, 1, 1, 1, 1)
-
     def on_scroll_event(self, widget, event):
         return True
 
@@ -77,7 +70,9 @@ class Views(Gtk.Grid):
         self.center_canvases()
 
     def center_canvases(self):
-        for view in self.views.values():
+        for i, view in enumerate(self.views.values()):
+            if i == 3:
+                continue
             canvas = view["canvas"]
             canvas.set_bounds(
                 -self.frame_width / 2,
@@ -104,21 +99,19 @@ class Views(Gtk.Grid):
             obj.set_params(**kwargs)
         self.objs.append(obj)
 
-    def draw_and_trace(self):
+    def draw(self):
         if not len(self.objs):
             return
 
         for obj in self.objs:
             obj.draw_on(self.views)
 
-        tracer = Tracer(self.objs, (self.frame_width, self.frame_height))
+    def trace(self, size):
+        if not len(self.objs):
+            return
 
-        pixbuf = GdkPixbuf.Pixbuf.new_from_file("tracer.png")
-        image = Gtk.Image.new_from_pixbuf(pixbuf)
-        for child in self.tracer_frame.get_children():
-            self.tracer_frame.remove(child)
-        self.tracer_frame.add(image)
-        self.tracer_frame.show_all()
+        tracer = Tracer(self.objs, size)
+        tracer.draw_on(self.views, (self.frame_width, self.frame_height))
 
 
 class MainWindow(Gtk.Window):
@@ -133,9 +126,11 @@ class MainWindow(Gtk.Window):
         self.updating_pitch = False
         self.updating_roll = False
 
+        # --- Subdiv Label and Entry ---
         subdiv_label = Gtk.Label(label="SUBDIV")
         subdiv_label.set_xalign(0)
-        self.subdiv_entry = Gtk.Entry(text="10")
+        self.subdiv_entry = Gtk.Entry()
+        self.subdiv_entry.set_text("10")
         self.subdiv_entry.set_hexpand(True)
         self.subdiv_entry.connect("changed", self.on_params_changed)
 
@@ -143,13 +138,83 @@ class MainWindow(Gtk.Window):
         subdiv_vbox.pack_start(subdiv_label, False, False, 0)
         subdiv_vbox.pack_start(self.subdiv_entry, False, False, 0)
 
-        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=20)
+        # --- Resolution Label ---
+        resolution_label = Gtk.Label(label="RESOLUTION")
+        resolution_label.set_xalign(0)
+
+        # --- Width Entry ---
+        width_label = Gtk.Label(label="Width")
+        width_label.set_xalign(0)
+        self.width_entry = Gtk.Entry()
+        self.width_entry.set_text("800")  # Default width
+        self.width_entry.set_hexpand(True)
+        self.width_entry.connect("changed", self.on_params_changed)
+
+        width_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        width_box.pack_start(width_label, False, False, 0)
+        width_box.pack_start(self.width_entry, True, True, 0)
+
+        # --- Height Entry ---
+        height_label = Gtk.Label(label="Height")
+        height_label.set_xalign(0)
+        self.height_entry = Gtk.Entry()
+        self.height_entry.set_text("600")  # Default height
+        self.height_entry.set_hexpand(True)
+        self.height_entry.connect("changed", self.on_params_changed)
+
+        height_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=5)
+        height_box.pack_start(height_label, False, False, 0)
+        height_box.pack_start(self.height_entry, True, True, 0)
+
+        # --- Trace Button ---
+        self.trace_button = Gtk.Button(label="Trace")
+        self.trace_button.connect("clicked", self.on_trace_button_clicked)
+        self.trace_button.set_hexpand(False)
+        self.trace_button.set_vexpand(False)
+
+        # --- ComboBox de Presets de Resolución ---
+        presets_label = Gtk.Label(label="Presets")
+        presets_label.set_xalign(0)
+
+        self.presets_combobox = Gtk.ComboBoxText()
+        self.presets_combobox.set_hexpand(False)
+        self.presets_combobox.connect("changed", self.on_preset_changed)
+
+        # Añadir opciones de presets
+        self.presets_combobox.append_text("800x600")
+        self.presets_combobox.append_text("1024x768")
+        self.presets_combobox.append_text("1280x720")
+        self.presets_combobox.append_text("1920x1080")
+        self.presets_combobox.append_text("Personalizado")
+        self.presets_combobox.set_active(0)  # Seleccionar el primer preset por defecto
+
+        # --- Box para Width y Height lado a lado ---
+        size_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        size_box.pack_start(width_box, False, False, 0)
+        size_box.pack_start(height_box, False, False, 0)
+        size_box.pack_start(presets_label, False, False, 0)
+        size_box.pack_start(self.presets_combobox, False, False, 0)
+        size_box.pack_start(self.trace_button, False, False, 0)
+
+        v_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        v_box.pack_start(resolution_label, False, False, 0)
+        v_box.pack_start(size_box, False, False, 0)
+
+        # --- Box Horizontal para Resolution, Size y Trace Button ---
+        resolution_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
+        resolution_box.pack_start(v_box, False, False, 0)
+
+        # --- Box Principal Horizontal (Subdiv y Resolution Section) ---
+        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=500)
         hbox.set_homogeneous(False)
 
-        hbox.pack_start(subdiv_vbox, True, True, 0)
+        hbox.pack_start(subdiv_vbox, False, False, 0)
+        hbox.pack_start(resolution_box, False, False, 0)
 
-        self.views = Views()
+        # --- Initialize Views ---
+        self.views = Views()  # Asegúrate de que la clase Views esté definida
 
+        # --- Grid Layout ---
         grid = Gtk.Grid(vexpand=True)
         grid.attach(mm, 0, 0, 2, 1)
         grid.attach(hbox, 0, 1, 2, 1)
@@ -184,11 +249,36 @@ class MainWindow(Gtk.Window):
             "subdiv": int(self.subdiv_entry.get_text()),
         }
 
+    def on_preset_changed(self, combobox):
+        preset = combobox.get_active_text()
+        if preset:
+            match preset:
+                case "800x600":
+                    self.width_entry.set_text("800")
+                    self.height_entry.set_text("600")
+                case "1024x768":
+                    self.width_entry.set_text("1024")
+                    self.height_entry.set_text("768")
+                case "1280x720":
+                    self.width_entry.set_text("1280")
+                    self.height_entry.set_text("720")
+                case "1920x1080":
+                    self.width_entry.set_text("1920")
+                    self.height_entry.set_text("1080")
+                case "Personalizado":
+                    self.width_entry.set_text("")
+                    self.height_entry.set_text("")
+
     def on_params_changed(self, param):
         self.views.clear_views()
         for obj in self.views.objs:
             obj.set_params(**self.get_params())
-        self.views.draw_and_trace()
+        self.views.draw()
+
+    def on_trace_button_clicked(self, menuitem):
+        self.views.trace(
+            (int(self.width_entry.get_text()), int(self.height_entry.get_text()))
+        )
 
     def on_add_cone_clicked(self, menuitem):
         self.views.full_clear_views()
@@ -198,7 +288,7 @@ class MainWindow(Gtk.Window):
                 **self.get_params(),
             )
         )
-        self.views.draw_and_trace()
+        self.views.draw()
 
     def on_add_ovus_clicked(self, menuitem):
         self.views.full_clear_views()
@@ -208,7 +298,7 @@ class MainWindow(Gtk.Window):
                 **self.get_params(),
             )
         )
-        self.views.draw_and_trace()
+        self.views.draw()
 
     def on_clear_clicked(self, menuitem):
         self.views.clear_views()
@@ -217,7 +307,7 @@ class MainWindow(Gtk.Window):
         self.views.clear_views()
         for obj in self.views.objs:
             obj.set_params(**self.get_params())
-        self.views.draw_and_trace()
+        self.views.draw()
 
     def on_open_pov_clicked(self, menuitem):
         fc = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.OPEN)
@@ -247,7 +337,7 @@ class MainWindow(Gtk.Window):
 
         for obj in objects:
             self.views.add_object(obj, **self.get_params())
-        self.views.draw_and_trace()
+        self.views.draw()
 
     def on_quit_clicked(self, menuitem):
         Gtk.main_quit()
