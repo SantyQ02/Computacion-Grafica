@@ -14,18 +14,23 @@ from povview_math import Vec3, Ray, Triangle, Hit, HitList
 LINE_COLOR = "darkgrey"
 
 
+# TODO: Add color to objects
 class Object3D:
     def __init__(
         self,
         data,
-        subdiv=50,
+        subdiv=10,
     ):
         self._subdiv = subdiv
+        self.svg_scale = 50
         self.modifiers = data["object_modifiers"]
 
         self.vertices = []
         self.edges = []
 
+        self.build()
+
+    def build(self):
         self.create_wireframe()
         self.apply_modifiers()
 
@@ -37,13 +42,15 @@ class Object3D:
         self._subdiv = subdiv
 
     def set_params(self, subdiv):
+        if subdiv == self._subdiv:
+            return
+
         self.set_subdiv(subdiv)
 
         self.vertices.clear()
         self.edges.clear()
 
-        self.create_wireframe()
-        self.apply_modifiers()
+        self.build()
 
     def create_wireframe(self):
         return
@@ -149,6 +156,7 @@ class Object3D:
                 case _:
                     raise ValueError("Invalid modifier type")
 
+    # TODO: Slow function
     def generate_faces(self):
         from collections import defaultdict
 
@@ -194,15 +202,15 @@ class Object3D:
         match view:
             case "xy":
                 for edge in self.edges:
-                    svg += f"M{self.vertices[edge[0]][0]:g},{self.vertices[edge[0]][1]:g} L{self.vertices[edge[1]][0]:g},{self.vertices[edge[1]][1]:g} "
+                    svg += f"M{self.vertices[edge[0]][0]*self.svg_scale:g},{self.vertices[edge[0]][1]*self.svg_scale:g} L{self.vertices[edge[1]][0]*self.svg_scale:g},{self.vertices[edge[1]][1]*self.svg_scale:g} "
 
             case "zy":
                 for edge in self.edges:
-                    svg += f"M{self.vertices[edge[0]][2]:g},{self.vertices[edge[0]][1]:g} L{self.vertices[edge[1]][2]:g},{self.vertices[edge[1]][1]:g} "
+                    svg += f"M{self.vertices[edge[0]][2]*self.svg_scale:g},{self.vertices[edge[0]][1]*self.svg_scale:g} L{self.vertices[edge[1]][2]*self.svg_scale:g},{self.vertices[edge[1]][1]*self.svg_scale:g} "
 
             case "zx":
                 for edge in self.edges:
-                    svg += f"M{self.vertices[edge[0]][2]:g},{self.vertices[edge[0]][0]:g} L{self.vertices[edge[1]][2]:g},{self.vertices[edge[1]][0]:g} "
+                    svg += f"M{self.vertices[edge[0]][2]*self.svg_scale:g},{self.vertices[edge[0]][0]*self.svg_scale:g} L{self.vertices[edge[1]][2]*self.svg_scale:g},{self.vertices[edge[1]][0]*self.svg_scale:g} "
 
             case _:
                 raise ValueError("Invalid view")

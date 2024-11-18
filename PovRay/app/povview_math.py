@@ -485,8 +485,11 @@ class HitList:
     def append(self, hit):
         self.hits.append(hit)
 
+    def extend(self, hitlist):
+        self.hits.extend(hitlist.hits)
+
     def empty(self):
-        self.hits == []
+        return self.hits == []
 
     def nearest_hit(self):
         return min(self.hits, key=lambda x: x.t)

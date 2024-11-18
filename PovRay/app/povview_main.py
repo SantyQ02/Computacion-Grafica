@@ -4,11 +4,12 @@ gi.require_version("Gtk", "3.0")
 from utils.goocanvas_util import setup_goocanvas
 
 setup_goocanvas()
-from gi.repository import Gtk, GooCanvas
+from gi.repository import Gtk, GooCanvas, GdkPixbuf
 
 from main_menu import Main_menu
 from povview_things import Cone, Ovus
 from povview_parser import parse
+from povview_tracer import Tracer
 
 
 TEST_CONE = {
@@ -60,6 +61,14 @@ class Views(Gtk.Grid):
             # Block scroll events on the canvas
             canvas.connect("scroll-event", self.on_scroll_event)
 
+        # Tracer view
+        self.tracer_frame = Gtk.Frame(
+            label="Tracer", label_xalign=0.04, hexpand=True, vexpand=True
+        )
+        self.tracer_frame.set_shadow_type(Gtk.ShadowType.ETCHED_IN)
+        # self.tracer_frame.connect("size-allocate", self.on_frame_size_allocate)
+        self.attach(self.tracer_frame, 1, 1, 1, 1)
+
     def on_scroll_event(self, widget, event):
         return True
 
@@ -92,19 +101,22 @@ class Views(Gtk.Grid):
         self.objs.clear()
 
     def add_object(self, obj, **kwargs):
-        match obj["type"]:
-            case "cone":
-                c = Cone(obj, **kwargs)
-                self.objs.append(c)
-            case "ovus":
-                o = Ovus(obj, **kwargs)
-                self.objs.append(o)
-            case _:
-                raise ValueError(f"Unknown object type: {obj['type']}")
+        if kwargs.get("subdiv"):
+            obj.set_params(**kwargs)
+        self.objs.append(obj)
 
-    def draw(self):
+    def draw_and_trace(self):
+        if not len(self.objs):
+            return
+
         for obj in self.objs:
             obj.draw_on(self.views)
+
+        tracer = Tracer(self.objs, (self.frame_width, self.frame_height))
+
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file("tracer.png")
+        image = Gtk.Image.new_from_pixbuf(pixbuf)
+        self.tracer_frame.add(image)
 
 
 class MainWindow(Gtk.Window):
@@ -174,23 +186,27 @@ class MainWindow(Gtk.Window):
         self.views.clear_views()
         for obj in self.views.objs:
             obj.set_params(**self.get_params())
-        self.views.draw()
+        self.views.draw_and_trace()
 
     def on_add_cone_clicked(self, menuitem):
         self.views.full_clear_views()
         self.views.add_object(
-            TEST_CONE,
-            **self.get_params(),
+            Cone(
+                TEST_CONE,
+                **self.get_params(),
+            )
         )
-        self.views.draw()
+        self.views.draw_and_trace()
 
     def on_add_ovus_clicked(self, menuitem):
         self.views.full_clear_views()
         self.views.add_object(
-            TEST_OVUS,
-            **self.get_params(),
+            Ovus(
+                TEST_OVUS,
+                **self.get_params(),
+            )
         )
-        self.views.draw()
+        self.views.draw_and_trace()
 
     def on_clear_clicked(self, menuitem):
         self.views.clear_views()
@@ -199,7 +215,7 @@ class MainWindow(Gtk.Window):
         self.views.clear_views()
         for obj in self.views.objs:
             obj.set_params(**self.get_params())
-        self.views.draw()
+        self.views.draw_and_trace()
 
     def on_open_pov_clicked(self, menuitem):
         fc = Gtk.FileChooserDialog(action=Gtk.FileChooserAction.OPEN)
@@ -225,10 +241,11 @@ class MainWindow(Gtk.Window):
         self.views.full_clear_views()
 
         parsed_file = parse(self.file)
+        objects = parsed_file["objects"]
 
-        for obj in parsed_file["objects"]:
+        for obj in objects:
             self.views.add_object(obj, **self.get_params())
-        self.views.draw()
+        self.views.draw_and_trace()
 
     def on_quit_clicked(self, menuitem):
         Gtk.main_quit()

@@ -130,8 +130,10 @@ def make_parser():
 
     object_list = [ovus_parser, cone_parser, sphere_parser]
 
-    objects = pp.Group(pp.Or(object_list)).setResultsName(
-        "objects", listAllMatches=True
+    objects = (
+        pp.Or(object_list)
+        .add_parse_action(lambda t: t[0])
+        .setResultsName("objects", listAllMatches=True)
     )
 
     element = light | camera | objects

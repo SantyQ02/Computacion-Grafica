@@ -12,5 +12,4 @@ camera {
 
 ovus {
     2, 1
-    scale 50
 }
