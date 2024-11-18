@@ -26,18 +26,17 @@
 import gi
 
 gi.require_version("Gtk", "3.0")
-from utils.goocanvas_util import setup_goocanvas
+from povview_utils import setup_goocanvas
+
 setup_goocanvas()
 from gi.repository import Gtk, GooCanvas
 
-"""
- __  __       _
-|  \/  | __ _(_)_ __      _ __ ___   ___ _ __  _   _
-| |\/| |/ _` | | '_ \    | '_ ` _ \ / _ \ '_ \| | | |
-| |  | | (_| | | | | |   | | | | | |  __/ | | | |_| |
-|_|  |_|\__,_|_|_| |_|___|_| |_| |_|\___|_| |_|\__,_|
-                    |_____|
-"""
+#  __  __       _
+# |  \/  | __ _(_)_ __      _ __ ___   ___ _ __  _   _
+# | |\/| |/ _` | | '_ \    | '_ ` _ \ / _ \ '_ \| | | |
+# | |  | | (_| | | | | |   | | | | | |  __/ | | | |_| |
+# |_|  |_|\__,_|_|_| |_|___|_| |_| |_|\___|_| |_|\__,_|
+#                     |_____|
 
 
 class Main_menu(Gtk.MenuBar):

@@ -1,7 +1,7 @@
 import gi
 
 gi.require_version("Gtk", "3.0")
-from utils.goocanvas_util import setup_goocanvas
+from povview_utils import setup_goocanvas
 
 setup_goocanvas()
 from gi.repository import Gtk, GooCanvas, GdkPixbuf
@@ -65,8 +65,7 @@ class Views(Gtk.Grid):
         self.tracer_frame = Gtk.Frame(
             label="Tracer", label_xalign=0.04, hexpand=True, vexpand=True
         )
-        self.tracer_frame.set_shadow_type(Gtk.ShadowType.ETCHED_IN)
-        # self.tracer_frame.connect("size-allocate", self.on_frame_size_allocate)
+        self.tracer_frame.connect("size-allocate", self.on_frame_size_allocate)
         self.attach(self.tracer_frame, 1, 1, 1, 1)
 
     def on_scroll_event(self, widget, event):
@@ -116,7 +115,10 @@ class Views(Gtk.Grid):
 
         pixbuf = GdkPixbuf.Pixbuf.new_from_file("tracer.png")
         image = Gtk.Image.new_from_pixbuf(pixbuf)
+        for child in self.tracer_frame.get_children():
+            self.tracer_frame.remove(child)
         self.tracer_frame.add(image)
+        self.tracer_frame.show_all()
 
 
 class MainWindow(Gtk.Window):
@@ -133,7 +135,7 @@ class MainWindow(Gtk.Window):
 
         subdiv_label = Gtk.Label(label="SUBDIV")
         subdiv_label.set_xalign(0)
-        self.subdiv_entry = Gtk.Entry(text="50")
+        self.subdiv_entry = Gtk.Entry(text="10")
         self.subdiv_entry.set_hexpand(True)
         self.subdiv_entry.connect("changed", self.on_params_changed)
 

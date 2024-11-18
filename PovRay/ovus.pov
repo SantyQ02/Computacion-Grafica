@@ -16,3 +16,11 @@ ovus {
         color rgb <1,0,1>
     }
 }
+
+ovus {
+    2, 1
+    translate <3,0,0>
+    pigment{
+        color rgb <1,1,0>
+    }
+}

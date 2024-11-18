@@ -1,15 +1,17 @@
 import gi
 
 gi.require_version("Gtk", "3.0")
-from utils.goocanvas_util import setup_goocanvas
+from povview_utils import setup_goocanvas
 
 setup_goocanvas()
 from gi.repository import GooCanvas
 from sympy import symbols, Eq, solve, re, im, N
 import numpy as np
+from functools import lru_cache
 
 from math import cos, sin, pi, sqrt, radians
 from povview_math import Vec3, Ray, Triangle, Hit, HitList, RGB
+from povview_utils import timer
 
 LINE_COLOR = "darkgrey"
 
@@ -162,7 +164,8 @@ class Object3D:
                 case _:
                     raise ValueError("Invalid modifier type")
 
-    # TODO: Slow function
+    # TODO: Slow function, try adding a Cache
+    @timer
     def generate_faces(self):
         from collections import defaultdict
 
