@@ -8,6 +8,7 @@ camera {
     location <0, 5, -5>
     look_at <0, 0, 0>
     up <0, 1, 0>
+    angle 45
 }
 
 ovus {

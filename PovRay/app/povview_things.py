@@ -23,6 +23,7 @@ class Camera:
         self.location = Vec3(Object3D.handle_value(camera_data["location"]))
         self.look_at = Vec3(Object3D.handle_value(camera_data["look_at"]))
         self.up = Vec3(Object3D.handle_value(camera_data["up"]))
+        self.angle = camera_data["angle"]
 
     def __str__(self):
         return f"Camera(location={self.location}, look_at={self.look_at}, up={self.up})"
@@ -194,16 +195,15 @@ class Object3D:
                 case _:
                     raise ValueError("Invalid modifier type")
 
-     # TODO: Slow function, try adding a Cache
     @timer
     def generate_faces(self):
-        #Cache Load
+        # Cache Load
         filename = f"faces/{self.__class__.__name__}_{self._subdiv}.txt"
         if os.path.exists(filename):
-            with open(filename, 'rb') as f:
+            with open(filename, "rb") as f:
                 faces = pickle.load(f)
             return faces
-        
+
         vertex_to_edges = defaultdict(list)
 
         for i, (v1, v2) in enumerate(self.edges):
@@ -238,10 +238,10 @@ class Object3D:
                     face = tuple(sorted([shared_vertex, other_vertex1, other_vertex2]))
                     if face not in faces:
                         faces.append(face)
-                        
-        #Cache Save
-        os.makedirs(os.path.dirname(filename), exist_ok=True) 
-        with open(filename, 'wb') as f:
+
+        # Cache Save
+        os.makedirs(os.path.dirname(filename), exist_ok=True)
+        with open(filename, "wb") as f:
             pickle.dump(faces, f)
 
         return faces

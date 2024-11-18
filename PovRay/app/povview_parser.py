@@ -73,6 +73,8 @@ def make_parser():
         + vector3("look_at")
         + pp.Keyword("up")
         + vector3("up")
+        + pp.Keyword("angle")
+        + ufloat("angle")
         + close_brace
     )
     camera.set_parse_action(lambda t: Camera(t.as_dict()))

@@ -106,11 +106,11 @@ class Views(Gtk.Grid):
         for obj in self.objs:
             obj.draw_on(self.views)
 
-    def trace(self, size):
+    def trace(self, tracer):
         if not len(self.objs):
             return
 
-        tracer = Tracer(self.objs, size)
+        tracer.trace()
         tracer.draw_on(self.views, (self.frame_width, self.frame_height))
 
 
@@ -127,7 +127,7 @@ class MainWindow(Gtk.Window):
         self.updating_roll = False
 
         # --- Subdiv Label and Entry ---
-        subdiv_label = Gtk.Label(label="SUBDIV")
+        subdiv_label = Gtk.Label(label="SUBDIVISIONS")
         subdiv_label.set_xalign(0)
         self.subdiv_entry = Gtk.Entry()
         self.subdiv_entry.set_text("10")
@@ -185,7 +185,7 @@ class MainWindow(Gtk.Window):
         self.presets_combobox.append_text("1024x768")
         self.presets_combobox.append_text("1280x720")
         self.presets_combobox.append_text("1920x1080")
-        self.presets_combobox.append_text("Personalizado")
+        self.presets_combobox.append_text("Custom")
         self.presets_combobox.set_active(0)  # Seleccionar el primer preset por defecto
 
         # --- Box para Width y Height lado a lado ---
@@ -265,7 +265,7 @@ class MainWindow(Gtk.Window):
                 case "1920x1080":
                     self.width_entry.set_text("1920")
                     self.height_entry.set_text("1080")
-                case "Personalizado":
+                case "Custom":
                     self.width_entry.set_text("")
                     self.height_entry.set_text("")
 
@@ -277,7 +277,12 @@ class MainWindow(Gtk.Window):
 
     def on_trace_button_clicked(self, menuitem):
         self.views.trace(
-            (int(self.width_entry.get_text()), int(self.height_entry.get_text()))
+            Tracer(
+                self.parsed_file["lights"],
+                self.parsed_file["cameras"][0],
+                self.parsed_file["objects"],
+                (int(self.width_entry.get_text()), int(self.height_entry.get_text())),
+            )
         )
 
     def on_add_cone_clicked(self, menuitem):
@@ -332,8 +337,8 @@ class MainWindow(Gtk.Window):
 
         self.views.full_clear_views()
 
-        parsed_file = parse(self.file)
-        objects = parsed_file["objects"]
+        self.parsed_file = parse(self.file)
+        objects = self.parsed_file["objects"]
 
         for obj in objects:
             self.views.add_object(obj, **self.get_params())
