@@ -2,6 +2,8 @@ import pyparsing as pp
 import json
 import sys
 
+from povview_things import Cone, Sphere, Ovus
+
 
 def make_parser():
     include_line = pp.Suppress(pp.LineStart() + "#" + pp.restOfLine)
@@ -98,6 +100,7 @@ def make_parser():
         + object_modifiers
         + close_brace
     )
+    ovus_parser.set_parse_action(lambda t: Ovus(t.as_dict()))
 
     sphere_parser = (
         pp.Keyword("sphere")("type")
@@ -108,6 +111,7 @@ def make_parser():
         + object_modifiers
         + close_brace
     )
+    sphere_parser.set_parse_action(lambda t: Sphere(t.as_dict()))
 
     cone_parser = (
         pp.Keyword("cone")("type")
@@ -122,6 +126,7 @@ def make_parser():
         + object_modifiers
         + close_brace
     )
+    cone_parser.set_parse_action(lambda t: Cone(t.as_dict()))
 
     object_list = [ovus_parser, cone_parser, sphere_parser]
 
@@ -150,13 +155,7 @@ def parse(filename):
 
     result_dict = res.as_dict()
 
-    result = {
-        "light_sources": result_dict.get("light_sources", []),
-        "cameras": result_dict.get("cameras", []),
-        "objects": result_dict.get("objects", []),
-    }
-
-    return result
+    return result_dict
 
 
 def main(args):
@@ -166,7 +165,10 @@ def main(args):
 
     result = parse(args[1])
 
-    print(json.dumps(result, indent=4))
+    try:
+        print(json.dumps(result, indent=4))
+    except:
+        print(result)
 
     return 0
 
