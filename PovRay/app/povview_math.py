@@ -77,6 +77,24 @@ class Vec2:
             assert new_y != None
             self._x, self._y = new_x, new_y
 
+    def __str__(self):
+        return f"Vec2({self._x}, {self._y})"
+
+    def __repr__(self):
+        return f"Vec2({self._x}, {self._y})"
+
+    def __getitem__(self, index):
+        return [self._x, self._y][index]
+
+    def __setitem__(self, index, value):
+        match index:
+            case 0:
+                self._x = value
+            case 1:
+                self._y = value
+            case _:
+                raise IndexError
+
 
 # __     __        _____
 # \ \   / /__  ___|___ /
@@ -120,7 +138,24 @@ class Vec3:
         return self._z
 
     def __str__(self):
-        return f"(Vec3: {self._x:g}, {self._y:g}, {self._z:g})"
+        return f"Vec3({self._x}, {self._y}, {self._z})"
+
+    def __repr__(self):
+        return f"Vec3({self._x}, {self._y}, {self._z})"
+
+    def __getitem__(self, index):
+        return [self._x, self._y, self._z][index]
+
+    def __setitem__(self, index, value):
+        match index:
+            case 0:
+                self._x = value
+            case 1:
+                self._y = value
+            case 2:
+                self._z = value
+            case _:
+                raise IndexError
 
     def __abs__(self):
         return self.mag()
@@ -172,6 +207,14 @@ class Vec3:
     def mag(self):
         return sqrt(self._x**2 + self._y**2 + self._z**2)
 
+    @staticmethod
+    def min(v1, v2):
+        return Vec3(min(v1.x, v2.x), min(v1.y, v2.y), min(v1.z, v2.z))
+
+    @staticmethod
+    def max(v1, v2):
+        return Vec3(max(v1.x, v2.x), max(v1.y, v2.y), max(v1.z, v2.z))
+
 
 # __     __        _  _
 # \ \   / /__  ___| || |
@@ -199,6 +242,28 @@ class Vec4:
 
             self._x, self._y, self._z, self._w = new_x, new_y, new_z, new_w
 
+    def __str__(self):
+        return f"Vec4({self._x}, {self._y}, {self._z}, {self._w})"
+
+    def __repr__(self):
+        return f"Vec4({self._x}, {self._y}, {self._z}, {self._w})"
+
+    def __getitem__(self, index):
+        return [self._x, self._y, self._z, self._w][index]
+
+    def __setitem__(self, index, value):
+        match index:
+            case 0:
+                self._x = value
+            case 1:
+                self._y = value
+            case 2:
+                self._z = value
+            case 3:
+                self._w = value
+            case _:
+                raise IndexError
+
     @property
     def x(self):
         return self._x
@@ -214,9 +279,6 @@ class Vec4:
     @property
     def w(self):
         return self._w
-
-    def __str__(self):
-        return f"(Vec4) x: {self.x:g}, y: {self._y:g}, z: {self._z:g}, w: {self._w:g}"
 
 
 #  ____   ____ ____
@@ -237,7 +299,10 @@ class RGB:
             self._rgb = [r, g, b]
 
     def __str__(self):
-        return f"(RBA) r: {self._rgb[0]}, g: {self._rgb[1]}, b: {self._rgb[2]}"
+        return f"RGB(r: {self._rgb[0]}, g: {self._rgb[1]}, b: {self._rgb[2]})"
+
+    def __repr__(self):
+        return f"RGB(r: {self._rgb[0]}, g: {self._rgb[1]}, b: {self._rgb[2]})"
 
     def limit(self):
         for c in range(3):
@@ -305,12 +370,10 @@ class RGBA:
             self._rgba = [r, g, b, a]
 
     def __str__(self):
-        return (
-            f"(RGBA) r: {self._rgba[0]}, "
-            f"g: {self._rgba[1]}, "
-            f"b: {self._rgba[2]}, "
-            f"a: {self._rgba[3]}"
-        )
+        return f"RGBA(r: {self._rgba[0]}, g: {self._rgba[1]}, b: {self._rgba[2]}, a: {self._rgba[3]})"
+
+    def __repr__(self):
+        return f"RGBA(r: {self._rgba[0]}, g: {self._rgba[1]}, b: {self._rgba[2]}, a: {self._rgba[3]})"
 
     def limit(self):
         for c in range(4):
@@ -363,28 +426,59 @@ class RGBA:
 
 
 class Ray:
-    def __init__(self, location, direction):
-        assert isinstance(location, Vec3)
+    def __init__(self, origin, direction):
+        assert isinstance(origin, Vec3)
         assert isinstance(direction, Vec3)
 
-        self.location = location
+        self.origin = origin
         self.direction = direction
 
     def __str__(self):
-        return f"loc: {self.location}, dir: {self.direction}"
+        return f"Ray(origin: {self.origin}, direction: {self.direction})"
+
+    def __repr__(self):
+        return f"Ray(origin: {self.origin}, direction: {self.direction})"
 
     def at(self, t):
-        return self.location + self.direction * t
+        return self.origin + self.direction * t
+
+
+#   _    _ _ _
+#  | |  | (_) |
+#  | |__| |_| |_
+#  |  __  | | __|
+#  | |  | | | |_
+#  |_|  |_|_|\__|
 
 
 class Hit:
     def __init__(self, obj, t):
         self.obj, self.t = obj, t
 
+    def __str__(self):
+        return f"Hit(obj: {self.obj}, t: {self.t})"
 
-class Hit_list:
+    def __repr__(self):
+        return f"Hit(obj: {self.obj}, t: {self.t})"
+
+
+#   _    _ _ _   _      _     _
+#  | |  | (_) | | |    (_)   | |
+#  | |__| |_| |_| |     _ ___| |_
+#  |  __  | | __| |    | / __| __|
+#  | |  | | | |_| |____| \__ \ |_
+#  |_|  |_|_|\__|______|_|___/\__|
+
+
+class HitList:
     def __init__(self):
         self.clear()
+
+    def __str__(self):
+        return f"HitList[{', '.join(str(hit) for hit in self.hits)}]"
+
+    def __repr__(self):
+        return f"HitList[{', '.join(str(hit) for hit in self.hits)}]"
 
     def append(self, hit):
         self.hits.append(hit)
@@ -393,101 +487,84 @@ class Hit_list:
         self.hits == []
 
     def nearest_hit(self):
-        nearest = Hit(None, float("inf"))
-        for hit in self.hits:
-            if hit.t < nearest.t:
-                nearest = hit
-
-        return nearest
+        return min(self.hits, key=lambda x: x.t)
 
     def clear(self):
         self.hits = []
 
 
-#  _     _ _                            _            _
-# | |   (_) |__  _ __ __ _ _ __ _   _  | |_ ___  ___| |_ ___
-# | |   | | '_ \| '__/ _` | '__| | | | | __/ _ \/ __| __/ __|
-# | |___| | |_) | | | (_| | |  | |_| | | ||  __/\__ \ |_\__ \
-# |_____|_|_.__/|_|  \__,_|_|   \__, |  \__\___||___/\__|___/
-#                               |___/
+#   _______   _                   _
+#  |__   __| (_)                 | |
+#     | |_ __ _  __ _ _ __   __ _| | ___
+#     | | '__| |/ _` | '_ \ / _` | |/ _ \
+#     | | |  | | (_| | | | | (_| | |  __/
+#     |_|_|  |_|\__,_|_| |_|\__, |_|\___|
+#                            __/ |
+#                           |___/
 
 
-def test_Vec3():
-    for test in [
-        "Vec3(1.11, 2.22, 3.33)",
-        "Vec3(Vec3(1.11, 2.22, 3.33))",
-        "Vec3([1.11, 2.22, 3.33])",
-        "Vec3((1.11, 2.22, 3.33))",
-        "Vec3(1, 2, 3).mag()",
-        "Vec3(1, 2, 3).normalized()",
-        "Vec3(1, 2, 3).dot(Vec3(4, 5, 6))",
-        "Vec3(1, 2, 3).add(Vec3(4, 5, 6))",
-        "Vec3(1, 2, 3).sub(Vec3(4, 5, 6))",
-        "Vec3(1, 2, 3).cross(Vec3(4, 5, 6))",
-        "abs(Vec3(1, 2, 3))",
-        "Vec3(1, 2, 3) + Vec3(4, 5, 6)",
-        "(Vec3(1, 2, 3) + Vec3(4, 5, 6)) * 3",
-        "Vec3(1, 2, 3) - Vec3(4, 5, 6)",
-        "Vec3(1, 2, 3) * 3",
-        "(Vec3(1, 2, 3) - Vec3(4, 5, 6)) * 3",
-    ]:
-        print(f"{test} --> {str(eval(test))}")
+class Triangle:
+    def __init__(self, new_a, new_b=None, new_c=None):
+        if isinstance(new_a, Triangle):
+            assert new_b == None
+            assert new_c == None
 
+            self._a, self._b, self._c = new_a._a, new_a._b, new_a._c
 
-def test_Ray():
-    for test in [
-        "Ray(Vec3(1, 2, 3), Vec3(4, 5, 6))",
-        "Ray(Vec3(1, 2, 3), Vec3(4, 5, 6)).at(2)",
-    ]:
-        print(f"{test} --> {str(eval(test))}")
+        elif isinstance(new_a, list) or isinstance(new_a, tuple):
+            assert len(new_a) == 3
+            assert new_b == None
+            assert new_c == None
 
+            self._a, self._b, self._c = new_a[0], new_a[1], new_a[2]
 
-def test_RGB():
-    for test in [
-        "RGB(0.1, 0.2, 0.3)",
-        "RGB(0.1, 0.2, 0.3).limit()",
-        "RGB(1.1, 1.2, 1.2).limit()",
-        "RGB(-0.1, -0.2, -0.2).limit()",
-        "RGB(0.1, 0.2, 0.3) * 2",
-        "RGB(0.1, 0.2, 0.3) + RGB(0.15, 0.25, 0.35)",
-        "RGB(0.1, 0.2, 0.3) - RGB(0.15, 0.25, 0.35)",
-        "RGB(0.123)",
-    ]:
-        print(f"{test}\n --> {str(eval(test))}")
+        else:
+            assert new_b != None
+            assert new_c != None
 
+            self._a, self._b, self._c = new_a, new_b, new_c
 
-def test_RGBA():
-    for test in [
-        "RGBA(0.1, 0.2, 0.3, 0.4)",
-        "RGBA(0.1, 0.2, 0.3, 0.4).limit()",
-        "RGBA(1.1, 1.2, 1.2, 0.4).limit()",
-        "RGBA(-0.1, -0.2, -0.2, -0.4).limit()",
-        "RGBA(0.1, 0.2, 0.3, 0.4) * 2",
-        "RGBA(0.1, 0.2, 0.3, 0.4) + RGBA(0.15, 0.25, 0.35, 0.45)",
-        "RGBA(0.1, 0.2, 0.3, 0.4) - RGBA(0.15, 0.25, 0.35, 0.45)",
-    ]:
-        print(f"{test}\n --> {str(eval(test))}")
+    @property
+    def a(self):
+        return self._a
 
+    @property
+    def b(self):
+        return self._b
 
-def test_hit_list():
-    lst = Hit_list()
-    lst.append(Hit(None, 1.23))
-    lst.append(Hit(None, -1.23))
-    lst.append(Hit(None, 1.24))
-    lst.append(Hit(None, 10.23))
-    print("Least: ", lst.nearest_hit().t)
+    @property
+    def c(self):
+        return self._c
 
+    def __str__(self):
+        return f"Triangle(a: {self._a}, b: {self._b}, c: {self._c})"
 
-def main(args):
-    # ~ test_Vec3()
-    # ~ test_Ray()
-    # ~ test_RGB()
-    # ~ test_RGBA()
-    test_hit_list()
-    return 0
+    def __repr__(self):
+        return f"Triangle(a: {self._a}, b: {self._b}, c: {self._c})"
 
+    def intersection(self, ray: Ray):
+        edge1 = self._b - self._a
+        edge2 = self._c - self._a
+        h = ray.direction.cross(edge2)
+        a = edge1.dot(h)
 
-if __name__ == "__main__":
-    import sys
+        if -1e-5 < a < 1e-5:  # Rayo paralelo al triángulo
+            return None
 
-    sys.exit(main(sys.argv))
+        f = 1 / a
+        s = ray.origin - self._a
+        u = f * s.dot(h)
+
+        if u < 0.0 or u > 1.0:
+            return None
+
+        q = s.cross(edge1)
+        v = f * ray.direction.dot(q)
+
+        if v < 0.0 or u + v > 1.0:
+            return None
+
+        t = f * edge2.dot(q)
+        if t > 1e-5:
+            return t
+        return None

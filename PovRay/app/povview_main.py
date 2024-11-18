@@ -170,7 +170,7 @@ class MainWindow(Gtk.Window):
 
     def get_params(self):
         return {
-            "SUBDIV": int(self.subdiv_entry.get_text()),
+            "subdiv": int(self.subdiv_entry.get_text()),
         }
 
     def on_params_changed(self, param):

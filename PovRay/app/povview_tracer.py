@@ -27,7 +27,7 @@ import pylab as plt
 import numpy as np
 
 from povview_parser import make_pov_parser, make_catalog
-from povview_math import Vec3, RGB, Ray, Hit, Hit_list
+from povview_math import Vec3, RGB, Ray, Hit, HitList
 from math import tan, radians, sqrt
 
 from PIL import Image
@@ -104,7 +104,7 @@ def tracer(size, scene_catalog):
     lights = scene_catalog["lights"]
 
     raygen = ray_generator(*size, Vec3(0, 0, -40), 30)
-    hitlist = Hit_list()
+    hitlist = HitList()
 
     for ray, i in raygen:
         hitlist.clear()  # Cada rayo borramos la list de hits

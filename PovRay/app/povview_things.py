@@ -11,6 +11,7 @@ from sympy import symbols, Eq, solve, re, im, N
 import numpy as np
 
 from math import cos, sin, pi, sqrt, radians
+from povview_math import Vec3, Ray, Triangle, Hit, HitList
 
 LINE_COLOR = "darkgrey"
 
@@ -19,21 +20,26 @@ class Object3D:
     def __init__(
         self,
         data,
-        SUBDIV=50,
+        subdiv=50,
     ):
-        self._SUBDIV = SUBDIV
+        self._subdiv = subdiv
+        self.modifiers = data["object_modifiers"]
+
         self.vertices = []
         self.edges = []
-        self.modifiers = data["object_modifiers"]
 
         self.create_wireframe()
         self.apply_modifiers()
 
-    def set_SUBDIV(self, SUBDIV):
-        self._SUBDIV = SUBDIV
+        self.bounding_box = BoundingBox(self.vertices)
 
-    def set_params(self, SUBDIV):
-        self.set_SUBDIV(SUBDIV)
+        self.faces = self.generate_faces()
+
+    def set_subdiv(self, subdiv):
+        self._subdiv = subdiv
+
+    def set_params(self, subdiv):
+        self.set_subdiv(subdiv)
 
         self.vertices.clear()
         self.edges.clear()
@@ -44,12 +50,32 @@ class Object3D:
     def create_wireframe(self):
         return
 
+    def intersection(self, ray: Ray):
+        hitlist = HitList()
+
+        if not self.bounding_box.intersection(ray):
+            return hitlist
+
+        for face in self.faces:
+            face = Triangle(
+                self.vertices[face[0]], self.vertices[face[1]], self.vertices[face[2]]
+            )
+
+            t = face.intersection(ray)
+            if not t:
+                continue
+
+            hitlist.append(Hit(self, t))
+
+        return hitlist
+
     def handle_value(self, value):
-        return (
-            (value["x"], value["y"], value["z"])
-            if isinstance(value, dict)
-            else (value, value, value)
-        )
+        if isinstance(value, list) or isinstance(value, tuple):
+            return value
+        elif isinstance(value, dict):
+            return (value["x"], value["y"], value["z"])
+        else:
+            return (value, value, value)
 
     def apply_rotation(self, angle_vector: tuple[float]):
         angle_vector = [radians(angle) for angle in angle_vector]
@@ -109,6 +135,9 @@ class Object3D:
             self.vertices[i] = np.matmul(scale_matrix, np.array(vertex))
 
     def apply_modifiers(self):
+        if not self.modifiers:
+            return
+
         for modifier in self.modifiers:
             match modifier["type"]:
                 case "translate":
@@ -119,6 +148,46 @@ class Object3D:
                     self.apply_scale(self.handle_value(modifier["value"]))
                 case _:
                     raise ValueError("Invalid modifier type")
+
+    def generate_faces(self):
+        from collections import defaultdict
+
+        vertex_to_edges = defaultdict(list)
+
+        for i, (v1, v2) in enumerate(self.edges):
+            vertex_to_edges[v1].append(i)
+            vertex_to_edges[v2].append(i)
+
+        faces = []
+
+        for edge1_idx, (v1, v2) in enumerate(self.edges):
+            connected_edges = set(vertex_to_edges[v1] + vertex_to_edges[v2])
+            connected_edges.discard(edge1_idx)
+
+            for edge2_idx in connected_edges:
+                v3, v4 = self.edges[edge2_idx]
+
+                shared_vertex = None
+                for v in (v3, v4):
+                    if v == v1 or v == v2:
+                        shared_vertex = v
+                        break
+
+                if shared_vertex is None:
+                    continue
+
+                other_vertex1 = v1 if v2 == shared_vertex else v2
+                other_vertex2 = v3 if v4 == shared_vertex else v4
+
+                if (other_vertex1, other_vertex2) in self.edges or (
+                    other_vertex2,
+                    other_vertex1,
+                ) in self.edges:
+                    face = tuple(sorted([shared_vertex, other_vertex1, other_vertex2]))
+                    if face not in faces:
+                        faces.append(face)
+
+        return faces
 
     def to_svg(self, view):
         svg = ""
@@ -152,6 +221,78 @@ class Object3D:
             )
 
 
+class BoundingBox:
+    def __init__(self, vertices=None):
+        self.min = np.array([np.inf, np.inf, np.inf])
+        self.max = np.array([-np.inf, -np.inf, -np.inf])
+
+        if vertices:
+            for vertex in vertices:
+                self.update(vertex)
+
+    def update(self, vertex):
+        self.min = Vec3.min(self.min, vertex)
+        self.max = Vec3.max(self.max, vertex)
+
+    @property
+    def centre(self):
+        return (self.min + self.max) / 2
+
+    def intersection(self, ray: Ray) -> bool:
+        t_min = (
+            (self.min[0] - ray.origin[0]) / ray.direction[0]
+            if ray.direction[0] != 0
+            else float("-inf")
+        )
+        t_max = (
+            (self.max[0] - ray.origin[0]) / ray.direction[0]
+            if ray.direction[0] != 0
+            else float("inf")
+        )
+        if t_min > t_max:
+            t_min, t_max = t_max, t_min
+
+        ty_min = (
+            (self.min[1] - ray.origin[1]) / ray.direction[1]
+            if ray.direction[1] != 0
+            else float("-inf")
+        )
+        ty_max = (
+            (self.max[1] - ray.origin[1]) / ray.direction[1]
+            if ray.direction[1] != 0
+            else float("inf")
+        )
+        if ty_min > ty_max:
+            ty_min, ty_max = ty_max, ty_min
+
+        # Check for overlap between X and Y intervals
+        if (t_min > ty_max) or (ty_min > t_max):
+            return False
+
+        # Combine intervals
+        t_min = max(t_min, ty_min)
+        t_max = min(t_max, ty_max)
+
+        tz_min = (
+            (self.min[2] - ray.origin[2]) / ray.direction[2]
+            if ray.direction[2] != 0
+            else float("-inf")
+        )
+        tz_max = (
+            (self.max[2] - ray.origin[2]) / ray.direction[2]
+            if ray.direction[2] != 0
+            else float("inf")
+        )
+        if tz_min > tz_max:
+            tz_min, tz_max = tz_max, tz_min
+
+        # Check for overlap between X, Y, and Z intervals
+        if (t_min > tz_max) or (tz_min > t_max):
+            return False
+
+        return True
+
+
 class Cone(Object3D):
     """
     tc      self.top_center     vec3    Cone top center
@@ -168,47 +309,38 @@ class Cone(Object3D):
 
         super().__init__(cone_data, **kwargs)
 
-    def __str__(self):
-        return (
-            f"Cone:\n"
-            f"top:    {self.top_center[0]:10g}, {self.top_center[1]:10g}, {self.top_center[2]:10g}"
-            f" radius: {self.top_radius:10g}\n"
-            f"bottom: {self.bottom_center[0]:10g}, {self.bottom_center[1]:10g}, {self.bottom_center[2]:10g}"
-            f" radius: {self.bottom_radius:10g}\n"
-        )
-
     def create_wireframe(self):
         # Vertices
-        circ_sub = 2 * pi / self._SUBDIV
+        circ_sub = 2 * pi / self._subdiv
 
-        for i in range(self._SUBDIV):
+        for i in range(self._subdiv):
             self.vertices.append(
-                [
+                Vec3(
                     self.bottom_center[0] + self.bottom_radius * cos(circ_sub * i),
                     -self.bottom_center[1],
                     self.bottom_center[2] + self.bottom_radius * sin(circ_sub * i),
-                ]
+                )
             )
             self.vertices.append(
-                [
+                Vec3(
                     self.top_center[0] + self.top_radius * cos(circ_sub * i),
                     -self.top_center[1],
                     self.top_center[2] + self.top_radius * sin(circ_sub * i),
-                ]
+                )
             )
 
         # Edges
-        for i in range(self._SUBDIV):
+        for i in range(self._subdiv):
             self.edges.append((i * 2, i * 2 + 1))
 
-        for i in range(self._SUBDIV - 1):
+        for i in range(self._subdiv - 1):
             self.edges.append((i * 2, i * 2 + 2))
             self.edges.append((i * 2 + 1, i * 2 + 3))
         self.edges.append((-1, 1))
         self.edges.append((-2, 0))
 
         # -- Triangulation
-        for i in range(self._SUBDIV - 1):
+        for i in range(self._subdiv - 1):
             self.edges.append((i * 2, (i + 1) * 2 + 1))
         self.edges.append((-2, 1))
 
@@ -296,7 +428,7 @@ class Ovus(Object3D):
 
     def create_wireframe(self):
         # Vertices
-        circ_sub = 2 * pi / self._SUBDIV
+        circ_sub = 2 * pi / self._subdiv
 
         if self.is_sphere:
             sphere_radius = max(self.bottom_radius, self.top_radius)
@@ -320,8 +452,8 @@ class Ovus(Object3D):
             self.base_point[2],
         ]
 
-        for i in range(1, self._SUBDIV):
-            y = (abs(top_point[1] - bottom_point[1]) / self._SUBDIV) * i + bottom_point[
+        for i in range(1, self._subdiv):
+            y = (abs(top_point[1] - bottom_point[1]) / self._subdiv) * i + bottom_point[
                 1
             ]
             radius = (
@@ -330,13 +462,13 @@ class Ovus(Object3D):
                 else self.get_radius(sphere_radius, y - self.base_point[1])
             )
 
-            for j in range(self._SUBDIV):
+            for j in range(self._subdiv):
                 self.vertices.append(
-                    [
+                    Vec3(
                         self.base_point[0] + radius * cos(circ_sub * j),
                         -y,
                         self.base_point[2] + radius * sin(circ_sub * j),
-                    ]
+                    )
                 )
 
         bottom_point[1], top_point[1] = (
@@ -344,30 +476,30 @@ class Ovus(Object3D):
             -top_point[1],
         )
 
-        self.vertices.insert(0, bottom_point)
-        self.vertices.append(top_point)
+        self.vertices.insert(0, Vec3(bottom_point))
+        self.vertices.append(Vec3(top_point))
 
         # Edges
-        for i in range(self._SUBDIV):
+        for i in range(self._subdiv):
             self.edges.append((0, (i + 1)))
-            for j in range(self._SUBDIV - 2):
+            for j in range(self._subdiv - 2):
                 self.edges.append(
-                    ((i + 1) + j * self._SUBDIV, (i + 1) + (j + 1) * self._SUBDIV)
+                    ((i + 1) + j * self._subdiv, (i + 1) + (j + 1) * self._subdiv)
                 )
-            self.edges.append(((i + 1) + (j + 1) * self._SUBDIV, -1))
+            self.edges.append(((i + 1) + (j + 1) * self._subdiv, -1))
 
-        for j in range(self._SUBDIV - 1):
-            for i in range(self._SUBDIV - 1):
-                self.edges.append((i + 1 + j * self._SUBDIV, i + 2 + j * self._SUBDIV))
-            self.edges.append(((j + 1) * self._SUBDIV, 1 + j * self._SUBDIV))
+        for j in range(self._subdiv - 1):
+            for i in range(self._subdiv - 1):
+                self.edges.append((i + 1 + j * self._subdiv, i + 2 + j * self._subdiv))
+            self.edges.append(((j + 1) * self._subdiv, 1 + j * self._subdiv))
 
         # -- Triangulation
-        for j in range(self._SUBDIV - 2):
-            for i in range(self._SUBDIV - 1):
+        for j in range(self._subdiv - 2):
+            for i in range(self._subdiv - 1):
                 self.edges.append(
-                    ((i + 1) + j * self._SUBDIV, (i + 2) + (j + 1) * self._SUBDIV)
+                    ((i + 1) + j * self._subdiv, (i + 2) + (j + 1) * self._subdiv)
                 )
-            self.edges.append(((i + 2) + j * self._SUBDIV, 1 + (j + 1) * self._SUBDIV))
+            self.edges.append(((i + 2) + j * self._subdiv, 1 + (j + 1) * self._subdiv))
 
     def draw_on(self, views):
         for view in ["xy", "zy", "zx"]:
