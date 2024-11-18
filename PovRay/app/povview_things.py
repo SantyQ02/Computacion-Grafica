@@ -1,5 +1,3 @@
-#!/usr/bin/env python3
-
 import gi
 
 gi.require_version("Gtk", "3.0")
@@ -105,7 +103,7 @@ class Object3D:
         )
 
         for i, vertex in enumerate(self.vertices):
-            self.vertices[i] = np.matmul(rotation_matrix, np.array(vertex))
+            self.vertices[i] = Vec3(np.matmul(rotation_matrix, vertex.__array__))
 
     def apply_translation(self, translation_vector: tuple[float]):
         translation_matrix = np.array(
@@ -118,8 +116,10 @@ class Object3D:
         )
 
         for i, vertex in enumerate(self.vertices):
-            self.vertices[i] = np.delete(
-                np.matmul(translation_matrix, np.append(np.array(vertex), 1)), -1
+            self.vertices[i] = Vec3(
+                np.delete(
+                    np.matmul(translation_matrix, np.append(vertex.__array__, 1)), -1
+                )
             )
 
     def apply_scale(self, scale_vector: tuple[float]):
@@ -132,7 +132,7 @@ class Object3D:
         )
 
         for i, vertex in enumerate(self.vertices):
-            self.vertices[i] = np.matmul(scale_matrix, np.array(vertex))
+            self.vertices[i] = Vec3(np.matmul(scale_matrix, vertex.__array__))
 
     def apply_modifiers(self):
         if not self.modifiers:
@@ -223,8 +223,8 @@ class Object3D:
 
 class BoundingBox:
     def __init__(self, vertices=None):
-        self.min = np.array([np.inf, np.inf, np.inf])
-        self.max = np.array([-np.inf, -np.inf, -np.inf])
+        self.min = Vec3(np.array([np.inf, np.inf, np.inf]))
+        self.max = Vec3(np.array([-np.inf, -np.inf, -np.inf]))
 
         if vertices:
             for vertex in vertices:
@@ -309,6 +309,12 @@ class Cone(Object3D):
 
         super().__init__(cone_data, **kwargs)
 
+    def __str__(self):
+        return f"Cone(top_center: {self.top_center}, top_radius: {self.top_radius}, bottom_center: {self.bottom_center}, bottom_radius: {self.bottom_radius})"
+
+    def __repr__(self):
+        return self.__str__()
+
     def create_wireframe(self):
         # Vertices
         circ_sub = 2 * pi / self._subdiv
@@ -345,6 +351,83 @@ class Cone(Object3D):
         self.edges.append((-2, 1))
 
 
+class Sphere(Object3D):
+    def __init__(self, sphere_data, **kwargs):
+        self.center = self.handle_value(sphere_data["center"])
+        self.radius = sphere_data["radius"]
+
+        super().__init__(sphere_data, **kwargs)
+
+    def __str__(self):
+        return f"Sphere(center: {self.center}, radius: {self.radius})"
+
+    def __repr__(self):
+        return self.__str__()
+
+    def get_radius(self, initial_radius: float, relative_height: float):
+        return sqrt(initial_radius**2 - relative_height**2)
+
+    def create_wireframe(self):
+        # Vertices
+        circ_sub = 2 * pi / self._subdiv
+
+        bottom_point = [
+            self.center[0],
+            self.center[1] - self.radius,
+            self.center[2],
+        ]
+        top_point = [
+            self.center[0],
+            self.center[1] + self.radius,
+            self.center[2],
+        ]
+
+        for i in range(1, self._subdiv):
+            y = (abs(top_point[1] - bottom_point[1]) / self._subdiv) * i + bottom_point[
+                1
+            ]
+            radius = self.get_radius(self.radius, y - self.center[1])
+
+            for j in range(self._subdiv):
+                self.vertices.append(
+                    Vec3(
+                        self.center[0] + radius * cos(circ_sub * j),
+                        -y,
+                        self.center[2] + radius * sin(circ_sub * j),
+                    )
+                )
+
+        bottom_point[1], top_point[1] = (
+            -bottom_point[1],
+            -top_point[1],
+        )
+
+        self.vertices.insert(0, Vec3(bottom_point))
+        self.vertices.append(Vec3(top_point))
+
+        # Edges
+        for i in range(self._subdiv):
+            self.edges.append((0, (i + 1)))
+            for j in range(self._subdiv - 2):
+                self.edges.append(
+                    ((i + 1) + j * self._subdiv, (i + 1) + (j + 1) * self._subdiv)
+                )
+            self.edges.append(((i + 1) + (j + 1) * self._subdiv, -1))
+
+        for j in range(self._subdiv - 1):
+            for i in range(self._subdiv - 1):
+                self.edges.append((i + 1 + j * self._subdiv, i + 2 + j * self._subdiv))
+            self.edges.append(((j + 1) * self._subdiv, 1 + j * self._subdiv))
+
+        # -- Triangulation
+        for j in range(self._subdiv - 2):
+            for i in range(self._subdiv - 1):
+                self.edges.append(
+                    ((i + 1) + j * self._subdiv, (i + 2) + (j + 1) * self._subdiv)
+                )
+            self.edges.append(((i + 2) + j * self._subdiv, 1 + (j + 1) * self._subdiv))
+
+
 class Ovus(Object3D):
     def __init__(self, ovus_data, **kwargs):
         self.base_point = (0, 0, 0)
@@ -360,10 +443,11 @@ class Ovus(Object3D):
 
     def __str__(self):
         return (
-            f"Ovus:\n"
-            f"  bottom radius: {self.bottom_radius:10g}\n"
-            f"  top radius:    {self.top_radius:10g}\n"
+            f"Ovus(bottom_radius: {self.bottom_radius}, top_radius: {self.top_radius})"
         )
+
+    def __repr__(self):
+        return self.__str__()
 
     def get_intersection(
         self, *, ctr1: tuple[float], r1: float, ctr2: tuple[float], r2: float
@@ -500,14 +584,3 @@ class Ovus(Object3D):
                     ((i + 1) + j * self._subdiv, (i + 2) + (j + 1) * self._subdiv)
                 )
             self.edges.append(((i + 2) + j * self._subdiv, 1 + (j + 1) * self._subdiv))
-
-    def draw_on(self, views):
-        for view in ["xy", "zy", "zx"]:
-            root = views[view]["canvas"].get_root_item()
-            GooCanvas.CanvasPath(
-                parent=root,
-                data=self.to_svg(view),
-                line_width=1,
-                stroke_color=LINE_COLOR,
-                fill_color=None,
-            )

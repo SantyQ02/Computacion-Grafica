@@ -1,28 +1,3 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-#
-#  povview_minitracer.py
-#
-#  Copyright 2024 John Coppens <john@jcoppens.com>
-#
-#  This program is free software; you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation; either version 2 of the License, or
-#  (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program; if not, write to the Free Software
-#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
-#  MA 02110-1301, USA.
-#
-#
-
-
 import pylab as plt
 import numpy as np
 
@@ -32,11 +7,10 @@ from math import tan, radians, sqrt
 
 from PIL import Image
 
-from pdb import set_trace as st
-
 
 def ray_generator(w, h, loc, angle):
-    """Generador de rayos. En el caso de umplementar el tracer con múltiples
+    """
+    Generador de rayos. En el caso de implementar el tracer con múltiples
     hilos o procesadores, esta rutina distribuye la tarea entre los
     rasterizadores. Eso se puede hacer, ya que no hay interacción entre
     cada rayo.
@@ -56,13 +30,13 @@ def ray_generator(w, h, loc, angle):
         y *= pixel
         direction = Vec3(x - loc.x, y - loc.y, 0 - loc.z)
 
-        yield Ray(loc, direction.normalized()), i
+        yield Ray(loc, direction.normalized())
 
 
 def mpl_plot_rays(raygen):
     x = []
     y = []
-    for r, i in raygen:
+    for r in raygen:
         d = r.direction
         x.append(d.x)
         y.append(d.y)
@@ -73,28 +47,12 @@ def mpl_plot_rays(raygen):
     plt.show()
 
 
-CONE = """
-cone { <0, 0, 0>, 1, <0, 5, 0>, 3
-       }
-"""
-
-SCENE = """
-camera { location <5, 5, -5>
-         look_at <0, 0, 0>
-         up <0, 1, 0>
-}
-light_source { <6, 6, -6>, rgb <1, 0.5, 0>
-}
-sphere { <0, 0, 0>, 1
-         pigment { rgb <0.5, 0.5, 0.5> }
-}
-"""
-
 AMBIENT = 0.2
 
 
 def tracer(size, scene_catalog):
-    """Tracing gráfico, utilizando una image creada por la librería PIL.
+    """
+    Tracing gráfico, utilizando una image creada por la librería PIL.
     Aunque estaremos escribiendo pixel por pixel en modo RGB, en este
     demo el color será siempre Amarillo, y la intensidad es máxima
     """
@@ -135,11 +93,11 @@ def tracer(size, scene_catalog):
         # ~ normal * (light_loc - ray.at(t)).normalized() * fact)
         # ~ hit_color = hit_color + thing_rgb.reflect(light_rgb) * cos1
         # ~ img.putpixel((x, y), hit_color.as_rgb8())
+        
     img.show()
 
 
 def main(args):
-    st()
     parser = make_pov_parser()
     parsed = parser.parse_string(SCENE)
     catalog = make_catalog(parsed)

@@ -1,30 +1,8 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-#
-#  povview_math.py
-#
-#  Copyright 2024 John Coppens <john@jcoppens.com>
-#
-#  This program is free software; you can redistribute it and/or modify
-#  it under the terms of the GNU General Public License as published by
-#  the Free Software Foundation; either version 2 of the License, or
-#  (at your option) any later version.
-#
-#  This program is distributed in the hope that it will be useful,
-#  but WITHOUT ANY WARRANTY; without even the implied warranty of
-#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#  GNU General Public License for more details.
-#
-#  You should have received a copy of the GNU General Public License
-#  along with this program; if not, write to the Free Software
-#  Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
-#  MA 02110-1301, USA.
-#
-#
-
 from math import cos, sin, pi, sqrt
 from pdb import set_trace as st
 from numbers import Number
+
+import numpy as np
 
 COLORS = {
     "Black": [0, 0, 0],
@@ -67,7 +45,11 @@ class Vec2:
 
             self._x, self._y = new_x._x, new_x._y
 
-        elif isinstance(new_x, list) or isinstance(new_x, tuple):
+        elif (
+            isinstance(new_x, list)
+            or isinstance(new_x, tuple)
+            or isinstance(new_x, np.ndarray)
+        ):
             assert len(new_x) == 2
             assert new_y == None
 
@@ -81,7 +63,7 @@ class Vec2:
         return f"Vec2({self._x}, {self._y})"
 
     def __repr__(self):
-        return f"Vec2({self._x}, {self._y})"
+        return self.__str__()
 
     def __getitem__(self, index):
         return [self._x, self._y][index]
@@ -94,6 +76,10 @@ class Vec2:
                 self._y = value
             case _:
                 raise IndexError
+
+    @property
+    def __array__(self) -> np.ndarray:
+        return np.array([self._x, self._y])
 
 
 # __     __        _____
@@ -112,7 +98,11 @@ class Vec3:
 
             self._x, self._y, self._z = new_x._x, new_x._y, new_x._z
 
-        elif isinstance(new_x, list) or isinstance(new_x, tuple):
+        elif (
+            isinstance(new_x, list)
+            or isinstance(new_x, tuple)
+            or isinstance(new_x, np.ndarray)
+        ):
             assert len(new_x) == 3
             assert new_y == None
             assert new_z == None
@@ -141,7 +131,7 @@ class Vec3:
         return f"Vec3({self._x}, {self._y}, {self._z})"
 
     def __repr__(self):
-        return f"Vec3({self._x}, {self._y}, {self._z})"
+        return self.__str__()
 
     def __getitem__(self, index):
         return [self._x, self._y, self._z][index]
@@ -173,6 +163,10 @@ class Vec3:
             return Vec3(self._x * v2, self._y * v2, self._z * v2)
         else:
             return self.dot(v2)
+
+    @property
+    def __array__(self) -> np.ndarray:
+        return np.array([self._x, self._y, self._z])
 
     def add(self, v2):
         assert isinstance(v2, Vec3)
@@ -231,7 +225,11 @@ class Vec4:
 
             self._x, self._y, self._z, self._w = new_x._x, new_x._y, new_x._z, new_x.w
 
-        elif isinstance(new_x, list) or isinstance(new_x, tuple):
+        elif (
+            isinstance(new_x, list)
+            or isinstance(new_x, tuple)
+            or isinstance(new_x, np.ndarray)
+        ):
             assert len(new_x) == 4
             assert (new_y == None) and (new_z == None) and (new_w == None)
 
@@ -246,7 +244,7 @@ class Vec4:
         return f"Vec4({self._x}, {self._y}, {self._z}, {self._w})"
 
     def __repr__(self):
-        return f"Vec4({self._x}, {self._y}, {self._z}, {self._w})"
+        return self.__str__()
 
     def __getitem__(self, index):
         return [self._x, self._y, self._z, self._w][index]
@@ -263,6 +261,10 @@ class Vec4:
                 self._w = value
             case _:
                 raise IndexError
+
+    @property
+    def __array__(self) -> np.ndarray:
+        return np.array([self._x, self._y, self._z, self._w])
 
     @property
     def x(self):
@@ -302,7 +304,7 @@ class RGB:
         return f"RGB(r: {self._rgb[0]}, g: {self._rgb[1]}, b: {self._rgb[2]})"
 
     def __repr__(self):
-        return f"RGB(r: {self._rgb[0]}, g: {self._rgb[1]}, b: {self._rgb[2]})"
+        return self.__str__()
 
     def limit(self):
         for c in range(3):
@@ -373,7 +375,7 @@ class RGBA:
         return f"RGBA(r: {self._rgba[0]}, g: {self._rgba[1]}, b: {self._rgba[2]}, a: {self._rgba[3]})"
 
     def __repr__(self):
-        return f"RGBA(r: {self._rgba[0]}, g: {self._rgba[1]}, b: {self._rgba[2]}, a: {self._rgba[3]})"
+        return self.__str__()
 
     def limit(self):
         for c in range(4):
@@ -437,7 +439,7 @@ class Ray:
         return f"Ray(origin: {self.origin}, direction: {self.direction})"
 
     def __repr__(self):
-        return f"Ray(origin: {self.origin}, direction: {self.direction})"
+        return self.__str__()
 
     def at(self, t):
         return self.origin + self.direction * t
@@ -459,7 +461,7 @@ class Hit:
         return f"Hit(obj: {self.obj}, t: {self.t})"
 
     def __repr__(self):
-        return f"Hit(obj: {self.obj}, t: {self.t})"
+        return self.__str__()
 
 
 #   _    _ _ _   _      _     _
@@ -478,7 +480,7 @@ class HitList:
         return f"HitList[{', '.join(str(hit) for hit in self.hits)}]"
 
     def __repr__(self):
-        return f"HitList[{', '.join(str(hit) for hit in self.hits)}]"
+        return self.__str__()
 
     def append(self, hit):
         self.hits.append(hit)
@@ -540,7 +542,7 @@ class Triangle:
         return f"Triangle(a: {self._a}, b: {self._b}, c: {self._c})"
 
     def __repr__(self):
-        return f"Triangle(a: {self._a}, b: {self._b}, c: {self._c})"
+        return self.__str__()
 
     def intersection(self, ray: Ray):
         edge1 = self._b - self._a
