@@ -9,12 +9,11 @@ from sympy import symbols, Eq, solve, re, im, N
 import numpy as np
 
 from math import cos, sin, pi, sqrt, radians
-from povview_math import Vec3, Ray, Triangle, Hit, HitList
+from povview_math import Vec3, Ray, Triangle, Hit, HitList, RGB
 
 LINE_COLOR = "darkgrey"
 
 
-# TODO: Add color to objects
 class Object3D:
     def __init__(
         self,
@@ -27,6 +26,8 @@ class Object3D:
 
         self.vertices = []
         self.edges = []
+
+        self.color = None
 
         self.build()
 
@@ -141,6 +142,9 @@ class Object3D:
         for i, vertex in enumerate(self.vertices):
             self.vertices[i] = Vec3(np.matmul(scale_matrix, vertex.__array__))
 
+    def apply_pigment(self, color):
+        self.color = RGB(color["r"], color["g"], color["b"])
+
     def apply_modifiers(self):
         if not self.modifiers:
             return
@@ -153,6 +157,8 @@ class Object3D:
                     self.apply_rotation(self.handle_value(modifier["value"]))
                 case "scale":
                     self.apply_scale(self.handle_value(modifier["value"]))
+                case "pigment":
+                    self.apply_pigment(modifier["color"])
                 case _:
                     raise ValueError("Invalid modifier type")
 

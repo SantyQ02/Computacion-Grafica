@@ -343,9 +343,12 @@ class RGB:
     def rgb(self):
         return self._rgb
 
-    @property
     def as_rgb8(self):
-        return (self._r * 255, self._g * 255, self._b * 255)
+        return (
+            int(self._rgb[0] * 255),
+            int(self._rgb[1] * 255),
+            int(self._rgb[2] * 255),
+        )
 
 
 #

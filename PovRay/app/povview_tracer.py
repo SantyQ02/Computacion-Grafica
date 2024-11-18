@@ -48,7 +48,7 @@ class Tracer:
 
             if not hitlist.empty():
                 hit = hitlist.nearest_hit()
-                hit_color = (255, 255, 255)
+                hit_color = hit.obj.color.as_rgb8()
                 img.putpixel((x, y), hit_color)
 
         img.save("tracer.png")

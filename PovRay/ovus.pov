@@ -12,4 +12,7 @@ camera {
 
 ovus {
     2, 1
+    pigment{
+        color rgb <1,0,1>
+    }
 }
