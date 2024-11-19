@@ -5,6 +5,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from io import BytesIO
 
 from povview_math import Vec3, Ray, HitList
+from povview_things import LightSource, Camera, Object3D
 from povview_utils import setup_goocanvas
 
 setup_goocanvas()
@@ -12,7 +13,13 @@ from gi.repository import GooCanvas, GdkPixbuf
 
 
 class Tracer:
-    def __init__(self, lights, camera, objects, size=(512, 512)):
+    def __init__(
+        self,
+        lights: list[LightSource],
+        camera: Camera,
+        objects: list[Object3D],
+        size=(512, 512),
+    ):
         self.lights = lights
         self.camera = camera
         self.objects = objects
@@ -41,25 +48,44 @@ class Tracer:
         rays = self.ray_generator_row(y, w, h, loc, angle)
         row_colors = []
         hitlist = HitList()
-        max_distance = 1000
+        light_hitlist = HitList()
 
         for ray in rays:
             hitlist.clear()
+            light_hitlist.clear()
+            hit_color = (0, 0, 0)
+
             for obj in self.objects:
                 hitlist.extend(obj.intersection(ray))
-            if not hitlist.empty():
-                hit = hitlist.nearest_hit()
-                distance = hit.t
-                intensity = max(0, 1 - (distance / max_distance))
-                hit_color = hit.obj.color.as_rgb8()
-                adjusted_color = (
-                    int(hit_color[0] * intensity),
-                    int(hit_color[1] * intensity),
-                    int(hit_color[2] * intensity),
-                )
-                row_colors.append(adjusted_color)
-            else:
-                row_colors.append((0, 0, 0))
+
+            if hitlist.empty():
+                row_colors.append(hit_color)
+                continue
+
+            hit = hitlist.nearest_hit()
+            hit_point = ray.origin + ray.direction * hit.t
+
+            # TODO: Consider multiple lights
+            for light in self.lights:
+                light_dir = (hit_point - light.location).normalized()
+                light_ray = Ray(light.location, light_dir)
+
+                for obj in self.objects:
+                    light_hitlist.extend(obj.intersection(light_ray))
+
+                if light_hitlist.empty():
+                    continue
+
+                light_hit = light_hitlist.nearest_hit()
+                light_hit_point = light_ray.origin + light_ray.direction * light_hit.t
+
+                if light_hit_point.round(6) == hit_point.round(6):
+                    # TODO: Consider how light color affects hit color
+                    hit_color = hit.obj.color.as_rgb8()
+                    break
+
+            row_colors.append(hit_color)
+
         return y, row_colors
 
     def trace(self):

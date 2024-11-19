@@ -34,7 +34,7 @@ class Camera:
 
 class LightSource:
     def __init__(self, light_data):
-        self.position = Vec3(Object3D.handle_value(light_data["position"]))
+        self.location = Vec3(Object3D.handle_value(light_data["location"]))
         self.color = RGB(
             light_data["color"]["r"], light_data["color"]["g"], light_data["color"]["b"]
         )
@@ -104,7 +104,7 @@ class Object3D:
                 continue
 
             hitlist.append(Hit(self, t))
-
+        
         return hitlist
 
     @staticmethod

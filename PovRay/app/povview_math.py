@@ -147,6 +147,12 @@ class Vec3:
             case _:
                 raise IndexError
 
+    def __eq__(self, v2):
+        if v2:
+            return self._x == v2._x and self._y == v2._y and self._z == v2._z
+        else:
+            return False
+
     def __abs__(self):
         return self.mag()
 
@@ -200,6 +206,11 @@ class Vec3:
 
     def mag(self):
         return sqrt(self._x**2 + self._y**2 + self._z**2)
+
+    def round(self, ndigits):
+        return Vec3(
+            round(self._x, ndigits), round(self._y, ndigits), round(self._z, ndigits)
+        )
 
     @staticmethod
     def min(v1, v2):

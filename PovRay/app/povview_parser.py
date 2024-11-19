@@ -55,7 +55,7 @@ def make_parser():
     light = (
         pp.Keyword("light_source")
         + open_brace
-        + vector3("position")
+        + vector3("location")
         + comma
         + rgb_vector3("color")
         + close_brace
