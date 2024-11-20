@@ -18,8 +18,12 @@ def make_parser():
     sinteger = pp.Combine(sign + uinteger)
     expon = pp.oneOf("e E") + sinteger
 
-    ufloat = pp.Combine(uinteger + pp.Optional("." + uinteger) + pp.Optional(expon))
-    sfloat = pp.Combine(sinteger + pp.Optional("." + uinteger) + pp.Optional(expon))
+    ufloat = pp.Combine(
+        uinteger + pp.Optional("." + pp.Word(pp.nums)) + pp.Optional(expon)
+    )
+    sfloat = pp.Combine(
+        sinteger + pp.Optional("." + pp.Word(pp.nums)) + pp.Optional(expon)
+    )
 
     uinteger.setParseAction(lambda t: int(t[0]))
     sinteger.setParseAction(lambda t: int(t[0]))

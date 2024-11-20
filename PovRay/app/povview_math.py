@@ -39,7 +39,6 @@ COLORS = {
 
 class Vec2:
     def __init__(self, new_x, new_y=None):
-        print(new_x, new_y)
         if isinstance(new_x, Vec2):
             assert new_y == None
 
@@ -170,6 +169,12 @@ class Vec3:
         else:
             return self.dot(v2)
 
+    def __rmul__(self, v2):  # Operator overload (* = dot)
+        if isinstance(v2, Number):
+            return Vec3(self._x * v2, self._y * v2, self._z * v2)
+        else:
+            return self.dot(v2)
+
     @property
     def __array__(self) -> np.ndarray:
         return np.array([self._x, self._y, self._z])
@@ -202,6 +207,8 @@ class Vec3:
 
     def normalized(self):
         d = self.mag()
+        if not d:
+            return Vec3(0, 0, 0)
         return Vec3(self._x / d, self._y / d, self._z / d)
 
     def mag(self):

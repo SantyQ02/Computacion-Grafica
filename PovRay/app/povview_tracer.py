@@ -4,9 +4,10 @@ from math import tan, radians
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from io import BytesIO
 
-from povview_math import Vec3, Ray, HitList
+from povview_math import Ray, HitList
 from povview_things import LightSource, Camera, Object3D
-from povview_utils import setup_goocanvas
+from povview_parser import parse
+from povview_utils import setup_goocanvas, timer
 
 setup_goocanvas()
 from gi.repository import GooCanvas, GdkPixbuf
@@ -29,23 +30,28 @@ class Tracer:
     def get_img(self):
         return self._img
 
-    def ray_generator_row(self, y, w, h, loc, angle):
-        width = abs(loc.z) * 2 * tan(radians(angle) / 2)
-        pixel = width / w
+    def ray_generator_row(self, y):
+        w, h = self.size
+
+        forward = (self.camera.look_at - self.camera.location).normalized()
+        right = forward.cross(self.camera.up).normalized()
+        up = self.camera.up.normalized()
+
+        width = 2 * tan(radians(self.camera.angle) / 2)
+        pixel_width = width / w
+
         rays = []
+        cy = (y - (h / 2) + 0.5) * pixel_width
         for x in range(w):
-            cx = (x - (w / 2) + 0.5) * pixel
-            cy = (y - (h / 2) + 0.5) * pixel
-            direction = Vec3(cx - loc.x, cy - loc.y, -loc.z).normalized()
-            rays.append(Ray(loc, direction))
+            cx = (x - (w / 2) + 0.5) * pixel_width
+            direction = (forward + right * cx + up * cy).normalized()
+            ray = Ray(self.camera.location, direction)
+            rays.append(ray)
+
         return rays
 
     def trace_row(self, y):
-        w, h = self.size
-        loc = self.camera.location
-        angle = self.camera.angle
-
-        rays = self.ray_generator_row(y, w, h, loc, angle)
+        rays = self.ray_generator_row(y)
         row_colors = []
         hitlist = HitList()
         light_hitlist = HitList()
@@ -88,6 +94,7 @@ class Tracer:
 
         return y, row_colors
 
+    @timer
     def trace(self):
         w, h = self.size
         img_array = np.zeros((h, w, 3), dtype=np.uint8)
@@ -150,3 +157,19 @@ class Tracer:
             x=x_pos,
             y=y_pos,
         )
+
+
+def main(args):
+    parsed_file = parse(args[1])
+    tracer = Tracer(
+        parsed_file["lights"],
+        parsed_file["cameras"][0],
+        parsed_file["objects"],
+        (512, 512),
+    )
+
+
+if __name__ == "__main__":
+    import sys
+
+    sys.exit(main(sys.argv))

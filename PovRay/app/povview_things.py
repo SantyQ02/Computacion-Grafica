@@ -104,7 +104,7 @@ class Object3D:
                 continue
 
             hitlist.append(Hit(self, t))
-        
+
         return hitlist
 
     @staticmethod
@@ -410,7 +410,7 @@ class Cone(Object3D):
 
 class Sphere(Object3D):
     def __init__(self, sphere_data, **kwargs):
-        self.center = self.handle_value(sphere_data["center"])
+        self.center = Vec3(self.handle_value(sphere_data["center"]))
         self.radius = sphere_data["radius"]
 
         super().__init__(sphere_data, **kwargs)
@@ -423,6 +423,22 @@ class Sphere(Object3D):
 
     def get_radius(self, initial_radius: float, relative_height: float):
         return sqrt(initial_radius**2 - relative_height**2)
+
+    def intersection(self, ray):
+        hitlist = HitList()
+
+        b = ray.direction * (ray.origin - self.center) * 2
+        c = abs(ray.origin - self.center) ** 2 - self.radius**2
+
+        if b**2 < 4 * c:
+            return hitlist
+        elif b**2 == 4 * c:
+            hitlist.append(Hit(self, -b / 2))
+        else:
+            hitlist.append(Hit(self, (-b - sqrt(b**2 - 4 * c)) / 2))
+            hitlist.append(Hit(self, (-b + sqrt(b**2 - 4 * c)) / 2))
+
+        return hitlist
 
     def create_wireframe(self):
         # Vertices
