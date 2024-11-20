@@ -5,14 +5,13 @@ light_source {
 }
 
 camera {
-    location <0, 5, -10>
+    location <0, 20, 0>
     look_at <0, 0, 0>
-    up <0, -1, 0>
     angle 45
 }
 
-box {
-    <-1,0,-1>, <1,2,1>
+sphere {
+    <0,1,0>, 1
     pigment{
         color rgb <1,0,0>
     }

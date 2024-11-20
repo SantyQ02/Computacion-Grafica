@@ -282,6 +282,7 @@ class MainWindow(Gtk.Window):
                 self.parsed_file["cameras"][0],
                 self.parsed_file["objects"],
                 (int(self.width_entry.get_text()), int(self.height_entry.get_text())),
+                model="ray_tracer",
             )
         )
 

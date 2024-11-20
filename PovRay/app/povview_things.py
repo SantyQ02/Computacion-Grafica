@@ -35,7 +35,9 @@ class Object3D:
 
         self.build()
 
-    def build(self):        
+    def build(self):
+        self.center = self.get_center()
+
         self.create_wireframe()
         self.apply_modifiers()
 
@@ -57,8 +59,11 @@ class Object3D:
 
         self.build()
 
+    def get_center(self):
+        return None
+
     def create_wireframe(self):
-        return
+        pass
 
     def intersection(self, ray: Ray):
         hitlist = HitList()
@@ -68,7 +73,10 @@ class Object3D:
 
         for face in self.faces:
             face = Triangle(
-                self.vertices[face[0]], self.vertices[face[1]], self.vertices[face[2]]
+                self.vertices[face[0]],
+                self.vertices[face[1]],
+                self.vertices[face[2]],
+                self.center,
             )
 
             t = face.intersection(ray)
@@ -118,6 +126,8 @@ class Object3D:
         for i, vertex in enumerate(self.vertices):
             self.vertices[i] = Vec3(np.matmul(rotation_matrix, vertex.__array__))
 
+        self.center = Vec3(np.matmul(rotation_matrix, self.center.__array__))
+
     def apply_translation(self, translation_vector: tuple[float]):
         translation_matrix = np.array(
             [
@@ -135,6 +145,12 @@ class Object3D:
                 )
             )
 
+        self.center = Vec3(
+            np.delete(
+                np.matmul(translation_matrix, np.append(self.center.__array__, 1)), -1
+            )
+        )
+
     def apply_scale(self, scale_vector: tuple[float]):
         scale_matrix = np.array(
             [
@@ -146,6 +162,8 @@ class Object3D:
 
         for i, vertex in enumerate(self.vertices):
             self.vertices[i] = Vec3(np.matmul(scale_matrix, vertex.__array__))
+
+        self.center = Vec3(np.matmul(scale_matrix, self.center.__array__))
 
     def apply_pigment(self, color):
         self.color = RGB(color["r"], color["g"], color["b"])
@@ -324,9 +342,9 @@ class BoundingBox:
 
 class Cone(Object3D):
     def __init__(self, cone_data, **kwargs):
-        self.top_center = self.handle_value(cone_data["top_center"])
+        self.top_center = Vec3(self.handle_value(cone_data["top_center"]))
         self.top_radius = cone_data["top_radius"]
-        self.bottom_center = self.handle_value(cone_data["bottom_center"])
+        self.bottom_center = Vec3(self.handle_value(cone_data["bottom_center"]))
         self.bottom_radius = cone_data["bottom_radius"]
 
         super().__init__(cone_data, **kwargs)
@@ -336,6 +354,9 @@ class Cone(Object3D):
 
     def __repr__(self):
         return self.__str__()
+
+    def get_center(self):
+        return (self.top_center + self.bottom_center) / 2
 
     def create_wireframe(self):
         # Vertices
@@ -375,8 +396,8 @@ class Cone(Object3D):
 
 class Box(Object3D):
     def __init__(self, box_data, **kwargs):
-        self.corner1 = self.handle_value(box_data["corner_1"])
-        self.corner2 = self.handle_value(box_data["corner_2"])
+        self.corner1 = Vec3(self.handle_value(box_data["corner_1"]))
+        self.corner2 = Vec3(self.handle_value(box_data["corner_2"]))
 
         super().__init__(box_data, **kwargs)
 
@@ -386,40 +407,8 @@ class Box(Object3D):
     def __repr__(self):
         return self.__str__()
 
-    def intersection(self, ray):
-        t_min = float("-inf")
-        t_max = float("inf")
-        hitlist = HitList()
-
-        for i in range(3):
-            if ray.direction[i] != 0:
-                t1 = (self.corner1[i] - ray.origin[i]) / ray.direction[i]
-                t2 = (self.corner2[i] - ray.origin[i]) / ray.direction[i]
-
-                if t1 > t2:
-                    t1, t2 = t2, t1
-
-                t_min = max(t_min, t1)
-                t_max = min(t_max, t2)
-
-                if t_min > t_max:
-                    return hitlist
-            else:
-                if ray.origin[i] < self.corner1[i] or ray.origin[i] > self.corner2[i]:
-                    return hitlist
-
-        if t_min > 0:
-            normal = Vec3(0, 0, 0)
-            for i in range(3):
-                if ray.origin[i] == self.corner1[i]:
-                    normal[i] = -1
-                elif ray.origin[i] == self.corner2[i]:
-                    normal[i] = 1
-
-            hitlist.append(Hit(self, t_min, normal))
-            return hitlist
-
-        return hitlist
+    def get_center(self):
+        return (self.corner1 + self.corner2) / 2
 
     def create_wireframe(self):
         self.vertices = [
@@ -470,6 +459,9 @@ class Sphere(Object3D):
 
     def __repr__(self):
         return self.__str__()
+
+    def get_center(self):
+        return self.center
 
     def get_radius(self, initial_radius: float, relative_height: float):
         return sqrt(initial_radius**2 - relative_height**2)
@@ -554,7 +546,7 @@ class Sphere(Object3D):
 
 class Ovus(Object3D):
     def __init__(self, ovus_data, **kwargs):
-        self.base_point = (0, 0, 0)
+        self.base_point = Vec3(0, 0, 0)
         self.bottom_radius = ovus_data["bottom_radius"]
         self.top_radius = ovus_data["top_radius"]
 
@@ -572,6 +564,9 @@ class Ovus(Object3D):
 
     def __repr__(self):
         return self.__str__()
+
+    def get_center(self):
+        return self.base_point + Vec3(0, max(self.bottom_radius, self.top_radius), 0)
 
     def get_intersection(
         self, *, ctr1: tuple[float], r1: float, ctr2: tuple[float], r2: float
@@ -709,7 +704,15 @@ class Camera:
     def __init__(self, camera_data):
         self.location = Vec3(Object3D.handle_value(camera_data["location"]))
         self.look_at = Vec3(Object3D.handle_value(camera_data["look_at"]))
-        self.up = Vec3(Object3D.handle_value(camera_data["up"]))
+
+        self.forward = Vec3(self.look_at - self.location).normalized()
+
+        self.up = Vec3(0, 1, 0)
+        self.right = self.forward.cross(self.up).normalized()
+        if self.right == Vec3(0, 0, 0):
+            self.up = Vec3(0, 0, -1)
+            self.right = self.forward.cross(self.up).normalized()
+
         self.angle = camera_data["angle"]
 
     def __str__(self):
@@ -726,10 +729,11 @@ class LightSource(Box):
             light_data["color"]["r"], light_data["color"]["g"], light_data["color"]["b"]
         )
 
-        self.corner1 = self.location + Vec3(-1, -0.5, -1)
-        self.corner2 = self.location + Vec3(1, 0.5, 1)
-        
+        self.corner1 = self.location
+        self.corner2 = self.location
+
         self.create_wireframe()
+        self.bounding_box = BoundingBox(self.vertices)
 
     def __str__(self):
         return f"LightSource(position={self.location}, color={self.color})"

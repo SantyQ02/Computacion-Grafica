@@ -3,7 +3,6 @@ from PIL import Image
 from math import tan, radians, pi, log, cos, sqrt
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from io import BytesIO
-import random
 
 from povview_math import Ray, HitList, Vec3, RGB
 from povview_things import LightSource, Camera, Object3D
@@ -13,7 +12,7 @@ from povview_utils import setup_goocanvas, timer
 setup_goocanvas()
 from gi.repository import GooCanvas, GdkPixbuf
 
-MAX_BOUNCES = 10
+MAX_BOUNCES = 2
 LIGHT_SOURCE_SIZE = 100
 RAYS_CASTS_PER_PIXEL = 1
 
@@ -25,46 +24,25 @@ class Tracer:
         camera: Camera,
         objects: list[Object3D],
         size=(512, 512),
+        model="ray_tracer",
     ):
+        self.model = model
         self.lights = lights
-        for light in self.lights:
-            light.corner1 *= Vec3(LIGHT_SOURCE_SIZE, 1, LIGHT_SOURCE_SIZE)
-            light.corner2 *= Vec3(LIGHT_SOURCE_SIZE, 1, LIGHT_SOURCE_SIZE)
         self.camera = camera
         self.objects = objects
-        self.objects.extend(self.lights)
+
+        if self.model == "path_tracer":
+            for light in self.lights:
+                light.corner1 += Vec3(-LIGHT_SOURCE_SIZE, -0.5, -LIGHT_SOURCE_SIZE)
+                light.corner2 += Vec3(LIGHT_SOURCE_SIZE, 0.5, LIGHT_SOURCE_SIZE)
+            self.objects.extend(self.lights)
+
         self.size = size
         self._img = None
-
-    @staticmethod
-    def sign(num):
-        return (num > 0) - (num < 0)
-
-    @staticmethod
-    def random_value_normal_distribution():
-        theta = 2 * pi * random.random()
-        rho = sqrt(-2 * log(random.random()))
-        return rho * cos(theta)
-
-    @staticmethod
-    def random_direction():
-        x = Tracer.random_value_normal_distribution()
-        y = Tracer.random_value_normal_distribution()
-        z = Tracer.random_value_normal_distribution()
-        return Vec3(x, y, z).normalized()
-
-    @staticmethod
-    def random_hemisphere_direction(normal):
-        direction = Tracer.random_direction()
-        return direction * Tracer.sign(direction.dot(normal))
 
     # TODO: Up vector is still inverted
     def ray_generator_row(self, y):
         w, h = self.size
-
-        forward = (self.camera.look_at - self.camera.location).normalized()
-        right = forward.cross(self.camera.up).normalized()
-        up = self.camera.up.normalized()
 
         width = 2 * tan(radians(self.camera.angle) / 2)
         pixel_width = width / w
@@ -73,49 +51,13 @@ class Tracer:
         cy = (y - (h / 2) + 0.5) * pixel_width
         for x in range(w):
             cx = (x - (w / 2) + 0.5) * pixel_width
-            direction = (forward + right * cx + up * cy).normalized()
+            direction = (
+                self.camera.forward + self.camera.right * cx + self.camera.up * cy
+            ).normalized()
             ray = Ray(self.camera.location, direction)
             rays.append(ray)
 
         return rays
-
-    def trace_row(self, y):
-        rays = self.ray_generator_row(y)
-        row_colors = []
-
-        for x, ray in enumerate(rays):
-            # seed = y * self.size[0] + x
-
-            pixel_color = RGB(0)
-            for _ in range(RAYS_CASTS_PER_PIXEL):
-                pixel_color += self.trace(ray)
-            pixel_color /= RAYS_CASTS_PER_PIXEL
-
-            row_colors.append(pixel_color.as_rgb8())
-
-        return y, row_colors
-
-    # TODO: Fix this function
-    def trace(self, ray):
-        incoming_light = RGB(0)
-        ray_color = RGB(1)
-
-        for i in range(MAX_BOUNCES + 1):
-            hit = self.ray_collision(ray)
-            if hit is None:
-                break
-
-            print(f"Path tracing: {i + 1} - Object: {hit.obj}")
-            ray.origin = ray.origin + ray.direction * hit.t
-            ray.direction = (hit.normal + self.random_direction()).normalized()
-
-            if isinstance(hit.obj, LightSource):
-                incoming_light += hit.obj.color * ray_color
-                break
-            else:
-                ray_color *= hit.obj.color
-
-        return incoming_light
 
     def ray_collision(self, ray):
         hitlist = HitList()
@@ -126,6 +68,63 @@ class Tracer:
             return None
 
         return hitlist.nearest_hit()
+
+    # TODO: Fix this function
+    def path_trace(self, ray):
+        incoming_light = RGB(0)
+        ray_color = RGB(1)
+
+        for _ in range(MAX_BOUNCES + 1):
+            hit = self.ray_collision(ray)
+            if hit is None:
+                break
+
+            ray.origin = ray.at(hit.t)
+            ray.direction = (hit.normal + Vec3.random_direction()).normalized()
+
+            if isinstance(hit.obj, LightSource):
+                incoming_light += hit.obj.color * ray_color
+                ray_color *= RGB(0)
+            else:
+                ray_color *= hit.obj.color
+
+        return incoming_light
+
+    def ray_trace(self, ray):
+        hit = self.ray_collision(ray)
+        if hit is None:
+            return RGB(0)
+        return self.calculate_light(ray, hit)
+
+    def trace(self, ray):
+        match self.model:
+            case "ray_tracer":
+                return self.ray_trace(ray)
+            case "path_tracer":
+                return self.path_trace(ray)
+            case _:
+                raise ValueError(f"Unknown model: {self.model}")
+
+    def calculate_light(self, ray, hit):
+        incoming_light = RGB(0)
+        for light in self.lights:
+            cos1 = hit.normal.dot((light.location - ray.at(hit.t)).normalized())
+            incoming_light += hit.obj.color * light.color * cos1
+        return incoming_light
+
+    def trace_row(self, y):
+        rays = self.ray_generator_row(y)
+        row_colors = []
+
+        for ray in rays:
+            pixel_color = RGB(0)
+            for _ in range(RAYS_CASTS_PER_PIXEL):
+                pixel_color += self.trace(ray)
+            pixel_color /= RAYS_CASTS_PER_PIXEL
+
+            row_colors.append(pixel_color.as_rgb8())
+
+        return y, row_colors
 
     @timer
     def trace_scene(self):
@@ -211,9 +210,10 @@ def main(args):
         parsed_file["cameras"][0],
         parsed_file["objects"],
         (800, 600),
+        model="ray_tracer",
     )
     tracer.trace_scene()
-    tracer.to_png("tracer.png")
+    tracer.to_png(f"{tracer.model}.png")
 
 
 if __name__ == "__main__":

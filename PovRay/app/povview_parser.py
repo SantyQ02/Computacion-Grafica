@@ -75,8 +75,6 @@ def make_parser():
         + vector3("location")
         + pp.Keyword("look_at")
         + vector3("look_at")
-        + pp.Keyword("up")
-        + vector3("up")
         + pp.Keyword("angle")
         + ufloat("angle")
         + close_brace

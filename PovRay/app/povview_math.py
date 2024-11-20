@@ -1,6 +1,6 @@
-from math import cos, sin, pi, sqrt
-from pdb import set_trace as st
+from math import cos, pi, sqrt, log
 from numbers import Number
+import random
 
 import numpy as np
 
@@ -28,6 +28,12 @@ COLORS = {
     "Gray": [0.5, 0.5, 0.5],
     "Gray75": [0.75, 0.75, 0.75],
 }
+
+
+def sign(num):
+    num = int(num)
+    return (num > 0) - (num < 0)
+
 
 # __     __        ____
 # \ \   / /__  ___|___ \
@@ -175,6 +181,18 @@ class Vec3:
         else:
             return Vec3(v2._x * self._x, v2._y * self._y, v2._z * self._z)
 
+    def __truediv__(self, v2):  # Operator overload (/)
+        if isinstance(v2, Number):
+            return Vec3(self._x / v2, self._y / v2, self._z / v2)
+        else:
+            return Vec3(self._x / v2._x, self._y / v2._y, self._z / v2._z)
+
+    def __rtruediv__(self, v2):  # Operator overload (/)
+        if isinstance(v2, Number):
+            return Vec3(v2 / self._x, v2 / self._y, v2 / self._z)
+        else:
+            return Vec3(v2._x / self._x, v2._y / self._y, v2._z / self._z)
+
     @property
     def __array__(self) -> np.ndarray:
         return np.array([self._x, self._y, self._z])
@@ -226,6 +244,24 @@ class Vec3:
     @staticmethod
     def max(v1, v2):
         return Vec3(max(v1.x, v2.x), max(v1.y, v2.y), max(v1.z, v2.z))
+
+    @staticmethod
+    def random_value_normal_distribution():
+        theta = 2 * pi * random.random()
+        rho = sqrt(-2 * log(random.random()))
+        return rho * cos(theta)
+
+    @staticmethod
+    def random_direction():
+        x = Vec3.random_value_normal_distribution()
+        y = Vec3.random_value_normal_distribution()
+        z = Vec3.random_value_normal_distribution()
+        return Vec3(x, y, z).normalized()
+
+    @staticmethod
+    def random_hemisphere_direction(normal):
+        direction = Vec3.random_direction()
+        return direction * sign(direction.dot(normal))
 
 
 # __     __        _  _
@@ -552,7 +588,7 @@ class HitList:
 
 
 class Triangle:
-    def __init__(self, new_a, new_b=None, new_c=None):
+    def __init__(self, new_a, new_b=None, new_c=None, obj_center: Vec3 = None):
         if isinstance(new_a, Triangle):
             assert new_b == None
             assert new_c == None
@@ -572,7 +608,10 @@ class Triangle:
 
             self._a, self._b, self._c = new_a, new_b, new_c
 
-        self._normal = (self._b - self._a).cross(self._c - self._a).normalized()
+        assert obj_center != None
+        normal_direction = (self._b - self._a).cross(self._c - self._a).normalized()
+        center_vector = self._a - obj_center
+        self._normal = normal_direction * sign(center_vector.dot(normal_direction))
 
     @property
     def a(self):
