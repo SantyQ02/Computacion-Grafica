@@ -188,12 +188,26 @@ class MainWindow(Gtk.Window):
         self.presets_combobox.append_text("Custom")
         self.presets_combobox.set_active(0)  # Seleccionar el primer preset por defecto
 
+        self.tracer_model = "ray_tracer"
+        # --- Label y ComboBox de Render Mode ---
+        render_mode_label = Gtk.Label(label="Render Mode")
+        render_mode_label.set_xalign(0)
+
+        self.render_mode_combobox = Gtk.ComboBoxText()
+        self.render_mode_combobox.set_hexpand(False)
+        self.render_mode_combobox.append_text("Raytracing")
+        self.render_mode_combobox.append_text("Pathtracing")
+        self.render_mode_combobox.set_active(0)  # Seleccionar "Raytracing" por defecto
+        self.render_mode_combobox.connect("changed", self.on_render_mode_changed)
+
         # --- Box para Width y Height lado a lado ---
         size_box = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=10)
         size_box.pack_start(width_box, False, False, 0)
         size_box.pack_start(height_box, False, False, 0)
         size_box.pack_start(presets_label, False, False, 0)
         size_box.pack_start(self.presets_combobox, False, False, 0)
+        size_box.pack_start(render_mode_label, False, False, 0)
+        size_box.pack_start(self.render_mode_combobox, False, False, 0)
         size_box.pack_start(self.trace_button, False, False, 0)
 
         v_box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
@@ -205,7 +219,7 @@ class MainWindow(Gtk.Window):
         resolution_box.pack_start(v_box, False, False, 0)
 
         # --- Box Principal Horizontal (Subdiv y Resolution Section) ---
-        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=500)
+        hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=200)
         hbox.set_homogeneous(False)
 
         hbox.pack_start(subdiv_vbox, False, False, 0)
@@ -275,6 +289,14 @@ class MainWindow(Gtk.Window):
             obj.set_params(**self.get_params())
         self.views.draw()
 
+    def on_render_mode_changed(self, combo):
+        tracer_selected = combo.get_active_text()
+        match tracer_selected:
+            case "Raytracing":
+                self.tracer_model = "ray_tracer"
+            case "Pathtracing":
+                self.tracer_model = "path_tracer"
+        
     def on_trace_button_clicked(self, menuitem):
         self.views.trace(
             Tracer(
@@ -282,7 +304,7 @@ class MainWindow(Gtk.Window):
                 self.parsed_file["cameras"][0],
                 self.parsed_file["objects"],
                 (int(self.width_entry.get_text()), int(self.height_entry.get_text())),
-                model="ray_tracer",
+                model=self.tracer_model,
             )
         )
 
