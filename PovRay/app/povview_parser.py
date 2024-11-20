@@ -2,7 +2,7 @@ import pyparsing as pp
 import json
 import sys
 
-from povview_things import Cone, Sphere, Ovus, Camera, LightSource
+from povview_things import Box, Cone, Sphere, Ovus, Camera, LightSource
 
 
 def make_parser():
@@ -140,7 +140,18 @@ def make_parser():
     )
     cone_parser.set_parse_action(lambda t: Cone(t.as_dict()))
 
-    object_list = [ovus_parser, cone_parser, sphere_parser]
+    box_parser = (
+        pp.Keyword("box")("type")
+        + open_brace
+        + vector3("corner_1")
+        + comma
+        + vector3("corner_2")
+        + object_modifiers
+        + close_brace
+    )
+    box_parser.set_parse_action(lambda t: Box(t.as_dict()))
+
+    object_list = [ovus_parser, cone_parser, sphere_parser, box_parser]
 
     objects = (
         pp.Or(object_list)

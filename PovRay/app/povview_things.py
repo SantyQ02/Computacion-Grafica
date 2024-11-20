@@ -18,34 +18,6 @@ from collections import defaultdict
 LINE_COLOR = "darkgrey"
 
 
-class Camera:
-    def __init__(self, camera_data):
-        self.location = Vec3(Object3D.handle_value(camera_data["location"]))
-        self.look_at = Vec3(Object3D.handle_value(camera_data["look_at"]))
-        self.up = Vec3(Object3D.handle_value(camera_data["up"]))
-        self.angle = camera_data["angle"]
-
-    def __str__(self):
-        return f"Camera(location={self.location}, look_at={self.look_at}, up={self.up})"
-
-    def __repr__(self):
-        return self.__str__()
-
-
-class LightSource:
-    def __init__(self, light_data):
-        self.location = Vec3(Object3D.handle_value(light_data["location"]))
-        self.color = RGB(
-            light_data["color"]["r"], light_data["color"]["g"], light_data["color"]["b"]
-        )
-
-    def __str__(self):
-        return f"LightSource(position={self.position}, color={self.color})"
-
-    def __repr__(self):
-        return self.__str__()
-
-
 class Object3D:
     def __init__(
         self,
@@ -63,7 +35,7 @@ class Object3D:
 
         self.build()
 
-    def build(self):
+    def build(self):        
         self.create_wireframe()
         self.apply_modifiers()
 
@@ -103,7 +75,7 @@ class Object3D:
             if not t:
                 continue
 
-            hitlist.append(Hit(self, t))
+            hitlist.append(Hit(self, t, face.normal))
 
         return hitlist
 
@@ -251,15 +223,15 @@ class Object3D:
         match view:
             case "xy":
                 for edge in self.edges:
-                    svg += f"M{self.vertices[edge[0]][0]*self.svg_scale:g},{self.vertices[edge[0]][1]*self.svg_scale:g} L{self.vertices[edge[1]][0]*self.svg_scale:g},{self.vertices[edge[1]][1]*self.svg_scale:g} "
+                    svg += f"M{self.vertices[edge[0]][0]*self.svg_scale:g},{-self.vertices[edge[0]][1]*self.svg_scale:g} L{self.vertices[edge[1]][0]*self.svg_scale:g},{-self.vertices[edge[1]][1]*self.svg_scale:g} "
 
             case "zy":
                 for edge in self.edges:
-                    svg += f"M{self.vertices[edge[0]][2]*self.svg_scale:g},{self.vertices[edge[0]][1]*self.svg_scale:g} L{self.vertices[edge[1]][2]*self.svg_scale:g},{self.vertices[edge[1]][1]*self.svg_scale:g} "
+                    svg += f"M{self.vertices[edge[0]][2]*self.svg_scale:g},{-self.vertices[edge[0]][1]*self.svg_scale:g} L{self.vertices[edge[1]][2]*self.svg_scale:g},{-self.vertices[edge[1]][1]*self.svg_scale:g} "
 
             case "zx":
                 for edge in self.edges:
-                    svg += f"M{self.vertices[edge[0]][2]*self.svg_scale:g},{self.vertices[edge[0]][0]*self.svg_scale:g} L{self.vertices[edge[1]][2]*self.svg_scale:g},{self.vertices[edge[1]][0]*self.svg_scale:g} "
+                    svg += f"M{self.vertices[edge[0]][2]*self.svg_scale:g},{-self.vertices[edge[0]][0]*self.svg_scale:g} L{self.vertices[edge[1]][2]*self.svg_scale:g},{-self.vertices[edge[1]][0]*self.svg_scale:g} "
 
             case _:
                 raise ValueError("Invalid view")
@@ -351,13 +323,6 @@ class BoundingBox:
 
 
 class Cone(Object3D):
-    """
-    tc      self.top_center     vec3    Cone top center
-    tr      self.top_radius     float   Cone top radius
-    bc      self.bottom_center     vec3    Cone bottom center
-    br      self.bottom_radius     float   Cone bottom radius
-    """
-
     def __init__(self, cone_data, **kwargs):
         self.top_center = self.handle_value(cone_data["top_center"])
         self.top_radius = cone_data["top_radius"]
@@ -380,14 +345,14 @@ class Cone(Object3D):
             self.vertices.append(
                 Vec3(
                     self.bottom_center[0] + self.bottom_radius * cos(circ_sub * i),
-                    -self.bottom_center[1],
+                    self.bottom_center[1],
                     self.bottom_center[2] + self.bottom_radius * sin(circ_sub * i),
                 )
             )
             self.vertices.append(
                 Vec3(
                     self.top_center[0] + self.top_radius * cos(circ_sub * i),
-                    -self.top_center[1],
+                    self.top_center[1],
                     self.top_center[2] + self.top_radius * sin(circ_sub * i),
                 )
             )
@@ -406,6 +371,91 @@ class Cone(Object3D):
         for i in range(self._subdiv - 1):
             self.edges.append((i * 2, (i + 1) * 2 + 1))
         self.edges.append((-2, 1))
+
+
+class Box(Object3D):
+    def __init__(self, box_data, **kwargs):
+        self.corner1 = self.handle_value(box_data["corner_1"])
+        self.corner2 = self.handle_value(box_data["corner_2"])
+
+        super().__init__(box_data, **kwargs)
+
+    def __str__(self):
+        return f"Box(corner1: {self.corner1}, corner2: {self.corner2})"
+
+    def __repr__(self):
+        return self.__str__()
+
+    def intersection(self, ray):
+        t_min = float("-inf")
+        t_max = float("inf")
+        hitlist = HitList()
+
+        for i in range(3):
+            if ray.direction[i] != 0:
+                t1 = (self.corner1[i] - ray.origin[i]) / ray.direction[i]
+                t2 = (self.corner2[i] - ray.origin[i]) / ray.direction[i]
+
+                if t1 > t2:
+                    t1, t2 = t2, t1
+
+                t_min = max(t_min, t1)
+                t_max = min(t_max, t2)
+
+                if t_min > t_max:
+                    return hitlist
+            else:
+                if ray.origin[i] < self.corner1[i] or ray.origin[i] > self.corner2[i]:
+                    return hitlist
+
+        if t_min > 0:
+            normal = Vec3(0, 0, 0)
+            for i in range(3):
+                if ray.origin[i] == self.corner1[i]:
+                    normal[i] = -1
+                elif ray.origin[i] == self.corner2[i]:
+                    normal[i] = 1
+
+            hitlist.append(Hit(self, t_min, normal))
+            return hitlist
+
+        return hitlist
+
+    def create_wireframe(self):
+        self.vertices = [
+            Vec3(self.corner1[0], self.corner1[1], self.corner1[2]),
+            Vec3(self.corner2[0], self.corner1[1], self.corner1[2]),
+            Vec3(self.corner2[0], self.corner2[1], self.corner1[2]),
+            Vec3(self.corner1[0], self.corner2[1], self.corner1[2]),
+            Vec3(self.corner1[0], self.corner1[1], self.corner2[2]),
+            Vec3(self.corner2[0], self.corner1[1], self.corner2[2]),
+            Vec3(self.corner2[0], self.corner2[1], self.corner2[2]),
+            Vec3(self.corner1[0], self.corner2[1], self.corner2[2]),
+        ]
+        self.edges = [
+            (0, 1),
+            (1, 2),
+            (2, 3),
+            (3, 0),
+            (0, 2),
+            (4, 5),
+            (5, 6),
+            (6, 7),
+            (7, 4),
+            (4, 6),
+            (0, 4),
+            (4, 1),
+            (1, 0),
+            (1, 5),
+            (5, 2),
+            (2, 1),
+            (2, 6),
+            (6, 3),
+            (3, 2),
+            (3, 7),
+            (7, 0),
+            (0, 3),
+        ]
 
 
 class Sphere(Object3D):
@@ -427,16 +477,22 @@ class Sphere(Object3D):
     def intersection(self, ray):
         hitlist = HitList()
 
-        b = ray.direction * (ray.origin - self.center) * 2
+        b = ray.direction.dot(ray.origin - self.center) * 2
         c = abs(ray.origin - self.center) ** 2 - self.radius**2
 
         if b**2 < 4 * c:
             return hitlist
         elif b**2 == 4 * c:
-            hitlist.append(Hit(self, -b / 2))
+            t = -b / 2
+            normal = ((ray.origin + ray.direction * t) - self.center).normalized()
+            hitlist.append(Hit(self, t, normal))
         else:
-            hitlist.append(Hit(self, (-b - sqrt(b**2 - 4 * c)) / 2))
-            hitlist.append(Hit(self, (-b + sqrt(b**2 - 4 * c)) / 2))
+            t = (-b - sqrt(b**2 - 4 * c)) / 2
+            normal = ((ray.origin + ray.direction * t) - self.center).normalized()
+            hitlist.append(Hit(self, t, normal))
+            t = (-b + sqrt(b**2 - 4 * c)) / 2
+            normal = ((ray.origin + ray.direction * t) - self.center).normalized()
+            hitlist.append(Hit(self, t, normal))
 
         return hitlist
 
@@ -465,15 +521,10 @@ class Sphere(Object3D):
                 self.vertices.append(
                     Vec3(
                         self.center[0] + radius * cos(circ_sub * j),
-                        -y,
+                        y,
                         self.center[2] + radius * sin(circ_sub * j),
                     )
                 )
-
-        bottom_point[1], top_point[1] = (
-            -bottom_point[1],
-            -top_point[1],
-        )
 
         self.vertices.insert(0, Vec3(bottom_point))
         self.vertices.append(Vec3(top_point))
@@ -623,15 +674,10 @@ class Ovus(Object3D):
                 self.vertices.append(
                     Vec3(
                         self.base_point[0] + radius * cos(circ_sub * j),
-                        -y,
+                        y,
                         self.base_point[2] + radius * sin(circ_sub * j),
                     )
                 )
-
-        bottom_point[1], top_point[1] = (
-            -bottom_point[1],
-            -top_point[1],
-        )
 
         self.vertices.insert(0, Vec3(bottom_point))
         self.vertices.append(Vec3(top_point))
@@ -657,3 +703,36 @@ class Ovus(Object3D):
                     ((i + 1) + j * self._subdiv, (i + 2) + (j + 1) * self._subdiv)
                 )
             self.edges.append(((i + 2) + j * self._subdiv, 1 + (j + 1) * self._subdiv))
+
+
+class Camera:
+    def __init__(self, camera_data):
+        self.location = Vec3(Object3D.handle_value(camera_data["location"]))
+        self.look_at = Vec3(Object3D.handle_value(camera_data["look_at"]))
+        self.up = Vec3(Object3D.handle_value(camera_data["up"]))
+        self.angle = camera_data["angle"]
+
+    def __str__(self):
+        return f"Camera(location={self.location}, look_at={self.look_at}, up={self.up})"
+
+    def __repr__(self):
+        return self.__str__()
+
+
+class LightSource(Box):
+    def __init__(self, light_data):
+        self.location = Vec3(Object3D.handle_value(light_data["location"]))
+        self.color = RGB(
+            light_data["color"]["r"], light_data["color"]["g"], light_data["color"]["b"]
+        )
+
+        self.corner1 = self.location + Vec3(-1, -0.5, -1)
+        self.corner2 = self.location + Vec3(1, 0.5, 1)
+        
+        self.create_wireframe()
+
+    def __str__(self):
+        return f"LightSource(position={self.location}, color={self.color})"
+
+    def __repr__(self):
+        return self.__str__()

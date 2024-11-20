@@ -110,7 +110,7 @@ class Views(Gtk.Grid):
         if not len(self.objs):
             return
 
-        tracer.trace()
+        tracer.trace_scene()
         tracer.draw_on(self.views, (self.frame_width, self.frame_height))
 
 

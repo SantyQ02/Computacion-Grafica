@@ -167,13 +167,13 @@ class Vec3:
         if isinstance(v2, Number):
             return Vec3(self._x * v2, self._y * v2, self._z * v2)
         else:
-            return self.dot(v2)
+            return Vec3(self._x * v2._x, self._y * v2._y, self._z * v2._z)
 
     def __rmul__(self, v2):  # Operator overload (* = dot)
         if isinstance(v2, Number):
-            return Vec3(self._x * v2, self._y * v2, self._z * v2)
+            return Vec3(v2 * self._x, v2 * self._y, v2 * self._z)
         else:
-            return self.dot(v2)
+            return Vec3(v2._x * self._x, v2._y * self._y, v2._z * self._z)
 
     @property
     def __array__(self) -> np.ndarray:
@@ -325,25 +325,47 @@ class RGB:
         return self.__str__()
 
     def limit(self):
-        for c in range(3):
-            self._rgb[c] = min(self._rgb[c], 1)
-            self._rgb[c] = max(self._rgb[c], 0)
+        self._rgb = [min(max(c, 0), 1) for c in self._rgb]
         return self
+
+    def __eq__(self, c2):
+        return self._rgb == c2
 
     def __add__(self, c2):
-        for c in range(3):
-            self._rgb[c] += c2._rgb[c]
-        return self
+        if isinstance(c2, Number):
+            return RGB(self._rgb[0] + c2, self._rgb[1] + c2, self._rgb[2] + c2)
+        else:
+            return RGB(self._rgb[0] + c2.r, self._rgb[1] + c2.g, self._rgb[2] + c2.b)
 
     def __sub__(self, c2):
-        for c in range(3):
-            self._rgb[c] -= c2._rgb[c]
-        return self
+        if isinstance(c2, Number):
+            return RGB(self._rgb[0] - c2, self._rgb[1] - c2, self._rgb[2] - c2)
+        else:
+            return RGB(self._rgb[0] - c2.r, self._rgb[1] - c2.g, self._rgb[2] - c2.b)
 
     def __mul__(self, f):
-        for c in range(3):
-            self._rgb[c] *= f
-        return self
+        if isinstance(f, Number):
+            return RGB(self._rgb[0] * f, self._rgb[1] * f, self._rgb[2] * f)
+        else:
+            return RGB(self._rgb[0] * f.r, self._rgb[1] * f.g, self._rgb[2] * f.b)
+
+    def __rmul__(self, f):
+        if isinstance(f, Number):
+            return RGB(f * self._rgb[0], f * self._rgb[1], f * self._rgb[2])
+        else:
+            return RGB(f.r * self._rgb[0], f.g * self._rgb[1], f.b * self._rgb[2])
+
+    def __truediv__(self, f):
+        if isinstance(f, Number):
+            return RGB(self._rgb[0] / f, self._rgb[1] / f, self._rgb[2] / f)
+        else:
+            return RGB(self._rgb[0] / f.r, self._rgb[1] / f.g, self._rgb[2] / f.b)
+
+    def __rtruediv__(self, f):
+        if isinstance(f, Number):
+            return RGB(f / self._rgb[0], f / self._rgb[1], f / self._rgb[2])
+        else:
+            return RGB(f.r / self._rgb[0], f.g / self._rgb[1], f.b / self._rgb[2])
 
     @property
     def r(self):
@@ -401,9 +423,7 @@ class RGBA:
         return self.__str__()
 
     def limit(self):
-        for c in range(4):
-            self._rgba[c] = min(self._rgba[c], 1)
-            self._rgba[c] = max(self._rgba[c], 0)
+        self._rgba = [min(max(c, 0), 1) for c in self._rgba]
         return self
 
     def __add__(self, c2):
@@ -477,8 +497,8 @@ class Ray:
 
 
 class Hit:
-    def __init__(self, obj, t):
-        self.obj, self.t = obj, t
+    def __init__(self, obj, t, normal):
+        self.obj, self.t, self.normal = obj, t, normal
 
     def __str__(self):
         return f"Hit(obj: {self.obj}, t: {self.t})"
@@ -552,6 +572,8 @@ class Triangle:
 
             self._a, self._b, self._c = new_a, new_b, new_c
 
+        self._normal = (self._b - self._a).cross(self._c - self._a).normalized()
+
     @property
     def a(self):
         return self._a
@@ -563,6 +585,10 @@ class Triangle:
     @property
     def c(self):
         return self._c
+
+    @property
+    def normal(self):
+        return self._normal
 
     def __str__(self):
         return f"Triangle(a: {self._a}, b: {self._b}, c: {self._c})"
