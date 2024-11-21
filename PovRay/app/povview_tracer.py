@@ -15,6 +15,7 @@ from gi.repository import GooCanvas, GdkPixbuf
 MAX_BOUNCES = 2
 LIGHT_SOURCE_SIZE = 100
 RAYS_CASTS_PER_PIXEL = 1
+AMBIENT = 0.2
 
 
 class Tracer:
@@ -99,8 +100,13 @@ class Tracer:
     def calculate_light(self, ray, hit):
         incoming_light = RGB(0)
         for light in self.lights:
-            cos1 = hit.normal.dot((light.location - ray.at(hit.t)).normalized())
-            incoming_light += hit.obj.color * light.color * cos1
+            light_ray = Ray(
+                light.location, (ray.at(hit.t) - light.location).normalized()
+            )
+            light_hit = self.ray_collision(light_ray)
+            if light_ray.at(light_hit.t).round(6) == ray.at(hit.t).round(6):
+                cos1 = hit.normal.dot((light.location - ray.at(hit.t)).normalized())
+                incoming_light += hit.obj.color * light.color * cos1
         return incoming_light
 
     def trace(self, ray):
@@ -210,7 +216,7 @@ def main(args):
         parsed_file["cameras"][0],
         parsed_file["objects"],
         (800, 600),
-        model="ray_tracer" if not args[2] else "path_tracer",
+        model="ray_tracer" if not int(args[2]) else "path_tracer",
     )
     tracer.trace_scene()
     tracer.to_png(f"{tracer.model}.png")
