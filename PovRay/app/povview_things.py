@@ -22,7 +22,7 @@ class Object3D:
     def __init__(
         self,
         data,
-        subdiv=10,
+        subdiv=3,
     ):
         self._subdiv = subdiv
         self.svg_scale = 50
@@ -712,6 +712,8 @@ class Camera:
         if self.right == Vec3(0, 0, 0):
             self.up = Vec3(0, 0, -1)
             self.right = self.forward.cross(self.up).normalized()
+
+        self.up = self.forward.cross(self.right).normalized()
 
         self.angle = camera_data["angle"]
 

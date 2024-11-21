@@ -96,6 +96,13 @@ class Tracer:
             return RGB(0)
         return self.calculate_light(ray, hit)
 
+    def calculate_light(self, ray, hit):
+        incoming_light = RGB(0)
+        for light in self.lights:
+            cos1 = hit.normal.dot((light.location - ray.at(hit.t)).normalized())
+            incoming_light += hit.obj.color * light.color * cos1
+        return incoming_light
+
     def trace(self, ray):
         match self.model:
             case "ray_tracer":
@@ -104,13 +111,6 @@ class Tracer:
                 return self.path_trace(ray)
             case _:
                 raise ValueError(f"Unknown model: {self.model}")
-
-    def calculate_light(self, ray, hit):
-        incoming_light = RGB(0)
-        for light in self.lights:
-            cos1 = hit.normal.dot((light.location - ray.at(hit.t)).normalized())
-            incoming_light += hit.obj.color * light.color * cos1
-        return incoming_light
 
     def trace_row(self, y):
         rays = self.ray_generator_row(y)
@@ -210,7 +210,7 @@ def main(args):
         parsed_file["cameras"][0],
         parsed_file["objects"],
         (800, 600),
-        model="ray_tracer",
+        model="ray_tracer" if not args[2] else "path_tracer",
     )
     tracer.trace_scene()
     tracer.to_png(f"{tracer.model}.png")
