@@ -713,7 +713,7 @@ class Camera:
             self.up = Vec3(0, 0, -1)
             self.right = self.forward.cross(self.up).normalized()
 
-        self.up = self.forward.cross(self.right).normalized()
+        self.up = self.forward.cross(self.right).normalized().inverted()
 
         self.angle = camera_data["angle"]
 

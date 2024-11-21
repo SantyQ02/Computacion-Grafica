@@ -15,7 +15,7 @@ from gi.repository import GooCanvas, GdkPixbuf
 MAX_BOUNCES = 2
 LIGHT_SOURCE_SIZE = 100
 RAYS_CASTS_PER_PIXEL = 1
-AMBIENT = 0.2
+AMBIENT = 0.1
 
 
 class Tracer:
@@ -41,7 +41,6 @@ class Tracer:
         self.size = size
         self._img = None
 
-    # TODO: Up vector is still inverted
     def ray_generator_row(self, y):
         w, h = self.size
 
@@ -98,7 +97,7 @@ class Tracer:
         return self.calculate_light(ray, hit)
 
     def calculate_light(self, ray, hit):
-        incoming_light = RGB(0)
+        incoming_light = hit.obj.color * RGB(AMBIENT)
         for light in self.lights:
             light_ray = Ray(
                 light.location, (ray.at(hit.t) - light.location).normalized()
@@ -107,7 +106,7 @@ class Tracer:
             if light_ray.at(light_hit.t).round(6) == ray.at(hit.t).round(6):
                 cos1 = hit.normal.dot((light.location - ray.at(hit.t)).normalized())
                 incoming_light += hit.obj.color * light.color * cos1
-        return incoming_light
+        return incoming_light.limit()
 
     def trace(self, ray):
         match self.model:

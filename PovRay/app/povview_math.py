@@ -229,6 +229,9 @@ class Vec3:
             return Vec3(0, 0, 0)
         return Vec3(self._x / d, self._y / d, self._z / d)
 
+    def inverted(self):
+        return Vec3(-self._x, -self._y, -self._z)
+
     def mag(self):
         return sqrt(self._x**2 + self._y**2 + self._z**2)
 
@@ -365,7 +368,7 @@ class RGB:
         return self
 
     def __eq__(self, c2):
-        return self._rgb == c2
+        return self._rgb == c2.rgb
 
     def __add__(self, c2):
         if isinstance(c2, Number):
