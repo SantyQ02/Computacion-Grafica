@@ -1,7 +1,7 @@
 #include "colors.inc"
 
 light_source {
-    <0, 10, 10>, color rgb <1, 1, 1>
+    <0, 30, 0>, color rgb <1, 1, 1>
 }
 
 camera {

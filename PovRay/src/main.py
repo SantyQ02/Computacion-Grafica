@@ -1,15 +1,16 @@
 import gi
 
 gi.require_version("Gtk", "3.0")
-from povview_utils import setup_goocanvas
+from povview.utils.utils import setup_goocanvas
 
 setup_goocanvas()
 from gi.repository import Gtk, GooCanvas
 
-from main_menu import Main_menu
-from povview_things import Cone, Ovus
-from povview_parser import parse
-from povview_tracer import Tracer
+from lib.main_menu import Main_menu
+from povview.elements.objects.cone import Cone
+from povview.elements.objects.ovus import Ovus
+from povview.parser import Parser
+from povview.tracer import Tracer
 
 
 TEST_CONE = {
@@ -296,7 +297,7 @@ class MainWindow(Gtk.Window):
                 self.tracer_model = "ray_tracer"
             case "Pathtracing":
                 self.tracer_model = "path_tracer"
-        
+
     def on_trace_button_clicked(self, menuitem):
         self.views.trace(
             Tracer(
@@ -360,7 +361,7 @@ class MainWindow(Gtk.Window):
 
         self.views.full_clear_views()
 
-        self.parsed_file = parse(self.file)
+        self.parsed_file = Parser().parse(self.file)
         objects = self.parsed_file["objects"]
 
         for obj in objects:

@@ -1,19 +1,23 @@
 import numpy as np
 from PIL import Image
-from math import tan, radians, pi, log, cos, sqrt
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from io import BytesIO
+from math import tan, radians
+from concurrent.futures import ProcessPoolExecutor, as_completed
 
-from povview_math import Ray, HitList, Vec3, RGB
-from povview_things import LightSource, Camera, Object3D
-from povview_parser import parse
-from povview_utils import setup_goocanvas, timer
+from povview.math.vector import Vec3
+from povview.math.tracing import Ray, HitList
+from povview.math.color import RGB
+from povview.elements.objects.base import Object3D
+from povview.elements.light_source import LightSource
+from povview.elements.camera import Camera
+from povview.elements.objects.box import Box
+from povview.utils.utils import setup_goocanvas, timer
 
 setup_goocanvas()
 from gi.repository import GooCanvas, GdkPixbuf
 
-MAX_BOUNCES = 2
-LIGHT_SOURCE_SIZE = 100
+MAX_BOUNCES = 1
+LIGHT_SOURCE_SIZE = 100000
 RAYS_CASTS_PER_PIXEL = 1
 AMBIENT = 0.1
 
@@ -74,13 +78,16 @@ class Tracer:
         incoming_light = RGB(0)
         ray_color = RGB(1)
 
-        for _ in range(MAX_BOUNCES + 1):
+        for i in range(MAX_BOUNCES + 1):
             hit = self.ray_collision(ray)
             if hit is None:
                 break
 
             ray.origin = ray.at(hit.t)
-            ray.direction = (hit.normal + Vec3.random_direction()).normalized()
+            # ray.direction = (hit.normal + Vec3.random_direction()).normalized()
+            ray.direction = Vec3.random_hemisphere_direction(hit.normal)
+            if isinstance(hit.obj, Box):
+                print(f"Path Depth: {i+1} - {hit.normal}")
 
             if isinstance(hit.obj, LightSource):
                 incoming_light += hit.obj.color * ray_color
@@ -206,22 +213,3 @@ class Tracer:
             raise ValueError(
                 "La imagen no ha sido renderizada aún. Llama al método trace() primero."
             )
-
-
-def main(args):
-    parsed_file = parse(args[1])
-    tracer = Tracer(
-        parsed_file["lights"],
-        parsed_file["cameras"][0],
-        parsed_file["objects"],
-        (800, 600),
-        model="ray_tracer" if not int(args[2]) else "path_tracer",
-    )
-    tracer.trace_scene()
-    tracer.to_png(f"{tracer.model}.png")
-
-
-if __name__ == "__main__":
-    import sys
-
-    sys.exit(main(sys.argv))

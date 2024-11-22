@@ -26,10 +26,7 @@
 import gi
 
 gi.require_version("Gtk", "3.0")
-from povview_utils import setup_goocanvas
-
-setup_goocanvas()
-from gi.repository import Gtk, GooCanvas
+from gi.repository import Gtk
 
 #  __  __       _
 # |  \/  | __ _(_)_ __      _ __ ___   ___ _ __  _   _
