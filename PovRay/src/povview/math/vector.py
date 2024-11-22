@@ -109,6 +109,9 @@ class Vec3:
     def __repr__(self):
         return self.__str__()
 
+    def __neg__(self):
+        return Vec3(-self._x, -self._y, -self._z)
+
     def __getitem__(self, index):
         return [self._x, self._y, self._z][index]
 

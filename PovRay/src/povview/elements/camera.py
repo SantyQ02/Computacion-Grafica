@@ -1,5 +1,5 @@
 from povview.math.vector import Vec3
-from povview.math.utils import handle_value
+from povview.math.utils import handle_value, sign
 
 
 class Camera:
@@ -9,13 +9,14 @@ class Camera:
 
         self.forward = Vec3(self.look_at - self.location).normalized()
 
-        self.up = Vec3(0, 1, 0)
-        self.right = self.forward.cross(self.up).normalized()
+        global_up = Vec3(0, 1, 0)
+        self.right = self.forward.cross(global_up).normalized()
         if self.right == Vec3(0, 0, 0):
-            self.up = Vec3(0, 0, -1)
+            global_up = Vec3(0, 0, -1)
             self.right = self.forward.cross(self.up).normalized()
 
-        self.up = self.forward.cross(self.right).normalized().inverted()
+        up = self.forward.cross(self.right).normalized()
+        self.up = up * -sign(up.dot(global_up))
 
         self.angle = camera_data["angle"]
 

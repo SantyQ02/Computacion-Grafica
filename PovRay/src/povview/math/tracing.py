@@ -17,7 +17,7 @@ class Ray:
         assert isinstance(direction, Vec3)
 
         self.origin = origin
-        self.direction = direction
+        self.direction = direction.normalized()
 
     def __str__(self):
         return f"Ray(origin: {self.origin}, direction: {self.direction})"

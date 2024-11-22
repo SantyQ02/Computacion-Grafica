@@ -10,7 +10,6 @@ from povview.math.color import RGB
 from povview.elements.objects.base import Object3D
 from povview.elements.light_source import LightSource
 from povview.elements.camera import Camera
-from povview.elements.objects.box import Box
 from povview.utils.utils import setup_goocanvas, timer
 
 setup_goocanvas()
@@ -19,7 +18,15 @@ from gi.repository import GooCanvas, GdkPixbuf
 MAX_BOUNCES = 1
 LIGHT_SOURCE_SIZE = 100000
 RAYS_CASTS_PER_PIXEL = 1
-AMBIENT = 0.1
+
+# LIGHTING
+AMBIENT = RGB(0.5)
+SHININESS = 64
+
+# WEIGHTS
+AMBIENT_WEIGHT = 0.3
+DIFFUSE_WEIGHT = 0.4
+SPECULAR_WEIGHT = 0.4
 
 
 class Tracer:
@@ -86,8 +93,6 @@ class Tracer:
             ray.origin = ray.at(hit.t)
             # ray.direction = (hit.normal + Vec3.random_direction()).normalized()
             ray.direction = Vec3.random_hemisphere_direction(hit.normal)
-            if isinstance(hit.obj, Box):
-                print(f"Path Depth: {i+1} - {hit.normal}")
 
             if isinstance(hit.obj, LightSource):
                 incoming_light += hit.obj.color * ray_color
@@ -101,19 +106,35 @@ class Tracer:
         hit = self.ray_collision(ray)
         if hit is None:
             return RGB(0)
-        return self.calculate_light(ray, hit)
+        return self.calculate_lighting(ray, hit)
 
-    def calculate_light(self, ray, hit):
-        incoming_light = hit.obj.color * RGB(AMBIENT)
+    def calculate_lighting(self, ray, hit):
+        diffuse = RGB(0)
+        specular = RGB(0)
+
+        view_vector = -ray.direction
+
         for light in self.lights:
-            light_ray = Ray(
-                light.location, (ray.at(hit.t) - light.location).normalized()
-            )
+            light_vector = (light.location - ray.at(hit.t)).normalized()
+            halfway_vector = (view_vector + light_vector).normalized()
+
+            light_ray = Ray(light.location, -light_vector)
             light_hit = self.ray_collision(light_ray)
+
             if light_ray.at(light_hit.t).round(6) == ray.at(hit.t).round(6):
-                cos1 = hit.normal.dot((light.location - ray.at(hit.t)).normalized())
-                incoming_light += hit.obj.color * light.color * cos1
-        return incoming_light.limit()
+                diffuse_strength = max(0, hit.normal.dot(light_vector))
+                diffuse += diffuse_strength * light.color
+
+                specular_strength = max(0, hit.normal.dot(halfway_vector)) ** SHININESS
+                specular += specular_strength * light.color
+
+        lighting = (
+            AMBIENT * AMBIENT_WEIGHT
+            + diffuse * DIFFUSE_WEIGHT
+            + specular * SPECULAR_WEIGHT
+        )
+
+        return hit.obj.color * lighting
 
     def trace(self, ray):
         match self.model:
