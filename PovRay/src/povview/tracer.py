@@ -134,7 +134,7 @@ class Tracer:
             + specular * SPECULAR_WEIGHT
         )
 
-        return hit.obj.color * lighting
+        return (hit.obj.color * lighting).limit()
 
     def trace(self, ray):
         match self.model:

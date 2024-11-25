@@ -3,9 +3,9 @@ def sign(num):
     return (num > 0) - (num < 0)
 
 
-def handle_value(value):
+def handle_value(value) -> tuple:
     if isinstance(value, list) or isinstance(value, tuple):
-        return value
+        return tuple(value)
     elif isinstance(value, dict):
         return (value["x"], value["y"], value["z"])
     else:

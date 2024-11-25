@@ -1,4 +1,5 @@
 from math import cos, pi, sin, sqrt
+from numbers import Number
 
 from povview.math.utils import handle_value
 from povview.math.vector import Vec3
@@ -24,6 +25,16 @@ class Sphere(Object3D):
 
     def get_radius(self, initial_radius: float, relative_height: float):
         return sqrt(initial_radius**2 - relative_height**2)
+
+    def apply_scale(self, scale_vector):
+        super().apply_scale(scale_vector)
+
+        if isinstance(scale_vector, tuple):
+            self.radius *= scale_vector[0]
+        elif isinstance(scale_vector, Number):
+            self.radius *= scale_vector
+        else:
+            raise TypeError("scale_vector must be Vec3 or Number")
 
     def intersection(self, ray):
         hitlist = HitList()
