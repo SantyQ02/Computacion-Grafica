@@ -10,9 +10,8 @@ camera {
     angle 45
 }
 
-ovus {
-    2, 1
-    translate <0,1.5,-2>
+sphere {
+    <0,1,0>, 1
     pigment{
         color rgb <1,0,0>
     }
