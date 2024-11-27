@@ -85,13 +85,14 @@ class Tracer:
         incoming_light = RGB(0)
         ray_color = RGB(1)
 
-        for i in range(MAX_BOUNCES + 1):
+        for _ in range(MAX_BOUNCES + 1):
             hit = self.ray_collision(ray)
             if hit is None:
                 break
 
             ray.origin = ray.at(hit.t)
-            # ray.direction = (hit.normal + Vec3.random_direction()).normalized()
+
+            # Lambertian reflection
             ray.direction = Vec3.random_hemisphere_direction(hit.normal)
 
             if isinstance(hit.obj, LightSource):
@@ -150,11 +151,7 @@ class Tracer:
         row_colors = []
 
         for ray in rays:
-            pixel_color = RGB(0)
-            for _ in range(RAYS_CASTS_PER_PIXEL):
-                pixel_color += self.trace(ray)
-            pixel_color /= RAYS_CASTS_PER_PIXEL
-
+            pixel_color = self.trace(ray)
             row_colors.append(pixel_color.as_rgb8())
 
         return y, row_colors

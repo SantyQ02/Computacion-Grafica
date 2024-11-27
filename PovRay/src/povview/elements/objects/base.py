@@ -177,7 +177,6 @@ class Object3D:
                 case _:
                     raise ValueError("Invalid modifier type")
 
-    @timer
     def generate_faces(self):
         base_dir = os.path.dirname(os.path.abspath(__file__))
         cache_filename = os.path.join(base_dir, "cache.pickle")

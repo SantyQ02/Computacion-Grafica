@@ -12,8 +12,8 @@ class Camera:
         global_up = Vec3(0, 1, 0)
         self.right = -self.forward.cross(global_up).normalized()
         if self.right == Vec3(0, 0, 0):
-            global_up = Vec3(0, 0, -1)
-            self.right = -self.forward.cross(self.up).normalized()
+            global_up = Vec3(0, 0, 1)
+            self.right = -self.forward.cross(global_up).normalized()
 
         up = self.forward.cross(self.right).normalized()
         self.up = up * -sign(up.dot(global_up))
