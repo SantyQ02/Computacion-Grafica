@@ -165,17 +165,16 @@ class Object3D:
             return
 
         for modifier in self.modifiers:
-            match modifier["type"]:
-                case "translate":
-                    self.apply_translation(handle_value(modifier["value"]))
-                case "rotate":
-                    self.apply_rotation(handle_value(modifier["value"]))
-                case "scale":
-                    self.apply_scale(handle_value(modifier["value"]))
-                case "pigment":
-                    self.apply_pigment(modifier["color"])
-                case _:
-                    raise ValueError("Invalid modifier type")
+            if modifier["type"] == "translate":
+                self.apply_translation(handle_value(modifier["value"]))
+            elif modifier["type"] == "rotate":
+                self.apply_rotation(handle_value(modifier["value"]))
+            elif modifier["type"] == "scale":
+                self.apply_scale(handle_value(modifier["value"]))
+            elif modifier["type"] == "pigment":
+                self.apply_pigment(modifier["color"])
+            else:
+                raise ValueError("Invalid modifier type")
 
     def generate_faces(self):
         base_dir = os.path.dirname(os.path.abspath(__file__))
@@ -236,21 +235,20 @@ class Object3D:
 
     def to_svg(self, view):
         svg = ""
-        match view:
-            case "xy":
-                for edge in self.edges:
-                    svg += f"M{self.vertices[edge[0]][0]*self.svg_scale:g},{-self.vertices[edge[0]][1]*self.svg_scale:g} L{self.vertices[edge[1]][0]*self.svg_scale:g},{-self.vertices[edge[1]][1]*self.svg_scale:g} "
+        if view == "xy":
+            for edge in self.edges:
+                svg += f"M{self.vertices[edge[0]][0]*self.svg_scale:g},{-self.vertices[edge[0]][1]*self.svg_scale:g} L{self.vertices[edge[1]][0]*self.svg_scale:g},{-self.vertices[edge[1]][1]*self.svg_scale:g} "
 
-            case "zy":
-                for edge in self.edges:
-                    svg += f"M{self.vertices[edge[0]][2]*self.svg_scale:g},{-self.vertices[edge[0]][1]*self.svg_scale:g} L{self.vertices[edge[1]][2]*self.svg_scale:g},{-self.vertices[edge[1]][1]*self.svg_scale:g} "
+        elif view == "zy":
+            for edge in self.edges:
+                svg += f"M{self.vertices[edge[0]][2]*self.svg_scale:g},{-self.vertices[edge[0]][1]*self.svg_scale:g} L{self.vertices[edge[1]][2]*self.svg_scale:g},{-self.vertices[edge[1]][1]*self.svg_scale:g} "
 
-            case "zx":
-                for edge in self.edges:
-                    svg += f"M{self.vertices[edge[0]][2]*self.svg_scale:g},{-self.vertices[edge[0]][0]*self.svg_scale:g} L{self.vertices[edge[1]][2]*self.svg_scale:g},{-self.vertices[edge[1]][0]*self.svg_scale:g} "
+        elif view == "zx":
+            for edge in self.edges:
+                svg += f"M{self.vertices[edge[0]][2]*self.svg_scale:g},{-self.vertices[edge[0]][0]*self.svg_scale:g} L{self.vertices[edge[1]][2]*self.svg_scale:g},{-self.vertices[edge[1]][0]*self.svg_scale:g} "
 
-            case _:
-                raise ValueError("Invalid view")
+        else:
+            raise ValueError("Invalid view")
 
         return svg.strip()
 

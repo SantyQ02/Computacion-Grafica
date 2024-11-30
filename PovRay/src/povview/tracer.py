@@ -138,13 +138,12 @@ class Tracer:
         return (hit.obj.color * lighting).limit()
 
     def trace(self, ray):
-        match self.model:
-            case "ray_tracer":
-                return self.ray_trace(ray)
-            case "path_tracer":
-                return self.path_trace(ray)
-            case _:
-                raise ValueError(f"Unknown model: {self.model}")
+        if self.model == "ray_tracer":
+            return self.ray_trace(ray)
+        elif self.model == "path_tracer":
+            return self.path_trace(ray)
+        else:
+            raise ValueError(f"Unknown model: {self.model}")
 
     def trace_row(self, y):
         rays = self.ray_generator_row(y)

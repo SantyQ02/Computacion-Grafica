@@ -1,3 +1,5 @@
+# Usage: python3 trace.py <archivo_entrada.pov> 0
+
 from povview.parser import Parser
 from povview.tracer import Tracer
 

@@ -267,22 +267,21 @@ class MainWindow(Gtk.Window):
     def on_preset_changed(self, combobox):
         preset = combobox.get_active_text()
         if preset:
-            match preset:
-                case "800x600":
-                    self.width_entry.set_text("800")
-                    self.height_entry.set_text("600")
-                case "1024x768":
-                    self.width_entry.set_text("1024")
-                    self.height_entry.set_text("768")
-                case "1280x720":
-                    self.width_entry.set_text("1280")
-                    self.height_entry.set_text("720")
-                case "1920x1080":
-                    self.width_entry.set_text("1920")
-                    self.height_entry.set_text("1080")
-                case "Custom":
-                    self.width_entry.set_text("")
-                    self.height_entry.set_text("")
+            if preset == "800x600":
+                self.width_entry.set_text("800")
+                self.height_entry.set_text("600")
+            elif preset == "1024x768":
+                self.width_entry.set_text("1024")
+                self.height_entry.set_text("768")
+            elif preset == "1280x720":
+                self.width_entry.set_text("1280")
+                self.height_entry.set_text("720")
+            elif preset == "1920x1080":
+                self.width_entry.set_text("1920")
+                self.height_entry.set_text("1080")
+            elif preset == "Custom":
+                self.width_entry.set_text("")
+                self.height_entry.set_text("")
 
     def on_params_changed(self, param):
         self.views.clear_views()
@@ -292,11 +291,10 @@ class MainWindow(Gtk.Window):
 
     def on_render_mode_changed(self, combo):
         tracer_selected = combo.get_active_text()
-        match tracer_selected:
-            case "Raytracing":
-                self.tracer_model = "ray_tracer"
-            case "Pathtracing":
-                self.tracer_model = "path_tracer"
+        if tracer_selected == "Raytracing":
+            self.tracer_model = "ray_tracer"
+        elif tracer_selected == "Pathtracing":
+            self.tracer_model = "path_tracer"
 
     def on_trace_button_clicked(self, menuitem):
         self.views.trace(

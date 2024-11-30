@@ -45,13 +45,12 @@ class Vec2:
         return [self._x, self._y][index]
 
     def __setitem__(self, index, value):
-        match index:
-            case 0:
-                self._x = value
-            case 1:
-                self._y = value
-            case _:
-                raise IndexError
+        if index == 0:
+            self._x = value
+        elif index == 1:
+            self._y = value
+        else:
+            raise IndexError
 
     @property
     def __array__(self) -> np.ndarray:
@@ -116,15 +115,14 @@ class Vec3:
         return [self._x, self._y, self._z][index]
 
     def __setitem__(self, index, value):
-        match index:
-            case 0:
-                self._x = value
-            case 1:
-                self._y = value
-            case 2:
-                self._z = value
-            case _:
-                raise IndexError
+        if index == 0:
+            self._x = value
+        elif index == 1:
+            self._y = value
+        elif index == 2:
+            self._z = value
+        else:
+            raise IndexError
 
     def __eq__(self, v2):
         if v2:
