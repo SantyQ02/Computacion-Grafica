@@ -279,17 +279,16 @@ class Vec4:
         return [self._x, self._y, self._z, self._w][index]
 
     def __setitem__(self, index, value):
-        match index:
-            case 0:
-                self._x = value
-            case 1:
-                self._y = value
-            case 2:
-                self._z = value
-            case 3:
-                self._w = value
-            case _:
-                raise IndexError
+        if index == 0:
+            self._x = value
+        elif index == 1:
+            self._y = value
+        elif index == 2:
+            self._z = value
+        elif index == 3:
+            self._w = value
+        else:
+            raise IndexError
 
     @property
     def __array__(self) -> np.ndarray:
